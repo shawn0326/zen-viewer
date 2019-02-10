@@ -1,0 +1,14 @@
+{
+  "name": "zen-viewer",
+  "version": "1.0.0",
+  "description": "Preview glTF 2.0 models in WebGL using zen3d.",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "shawn0326",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^5.13.0"
+  }
+}
