@@ -10,6 +10,8 @@ const MAP_NAMES = [
 	'specularMap'
 ];
 
+zen3d.DRACOLoader.setDecoderPath('libs/draco/');
+
 class Viewer {
 
 	constructor(el) {
@@ -106,6 +108,7 @@ class Viewer {
 			});
 
 			const loader = new zen3d.GLTFLoader(manager);
+			loader.setDRACOLoader(new zen3d.DRACOLoader());
 			const blobURLs = [];
 
 			loader.load(url, (gltf) => {
