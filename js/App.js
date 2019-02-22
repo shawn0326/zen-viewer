@@ -73,5 +73,5 @@ class App {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-	const app = new App(document.body, location);
+	new App(document.body, location);
 });

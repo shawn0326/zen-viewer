@@ -19,7 +19,8 @@ class Viewer {
 		this.content = null;
 
 		this.state = {
-			environment: environments[1].name
+			environment: environments[1].name,
+			actionStates: []
 		};
 
 		const canvas = document.createElement('canvas');
@@ -58,6 +59,14 @@ class Viewer {
 		this.clock = new zen3d.Clock();
 
 		this.mixer = null;
+		this.clips = [];
+
+		this.gui = null;
+
+		this.animFolder = null;
+		this.animCtrls = [];
+
+		this.addGUI();
 
 		this.animate = this.animate.bind(this);
 		requestAnimationFrame(this.animate);
@@ -68,6 +77,7 @@ class Viewer {
 		requestAnimationFrame(this.animate);
 		this.controls.update();
 		this.mixer && this.mixer.update(this.clock.getDelta());
+		// this.camera.updateMatrix();
 		this.renderer.render(this.scene, this.camera);
 	}
 
@@ -126,9 +136,9 @@ class Viewer {
 		const center = box.getCenter(new zen3d.Vector3());
 		const size = new zen3d.Vector3().subVectors(box.max, box.min).getLength();
 
-		this.scene.position.x += (this.scene.position.x - center.x);
-		this.scene.position.y += (this.scene.position.y - center.y);
-		this.scene.position.z += (this.scene.position.z - center.z);
+		object.position.x += (object.position.x - center.x);
+		object.position.y += (object.position.y - center.y);
+		object.position.z += (object.position.z - center.z);
 
 		this.controls.maxDistance = size * 10;
 
@@ -146,13 +156,10 @@ class Viewer {
 		this.scene.add(object);
 		this.content = object;
 
-		if (clips.length > 0) {
-			this.mixer = new zen3d.AnimationMixer();
-			this.mixer.add(clips[0]);
-			this.mixer.play(clips[0].name);
-		}
-
+		this.setClips(clips);
 		this.updateEnvironment();
+
+		this.updateGUI();
 	}
 
 	updateEnvironment() {
@@ -175,6 +182,70 @@ class Viewer {
 				material.needsUpdate = true;
 			}
 		});
+	}
+
+	setClips(clips) {
+		if (this.mixer) {
+			this.mixer = null;
+		}
+
+		this.clips = clips;
+		if (!clips.length) return;
+
+		this.mixer = new zen3d.AnimationMixer();
+
+		clips.forEach(clip => {
+			this.mixer.add(clip);
+		});
+	}
+
+	playAllClips() {
+		this.clips.forEach(clip => {
+			this.mixer.play(clip.name);
+			this.state.actionStates[clip.name] = true;
+		});
+	}
+
+	addGUI() {
+		const gui = this.gui = new dat.GUI({ autoPlace: false, width: 260, hideable: true });
+
+		// Animation controls.
+		this.animFolder = gui.addFolder('Animation');
+		this.animFolder.domElement.style.display = 'none';
+		this.animFolder.add({ playAll: () => this.playAllClips() }, 'playAll');
+
+		const guiWrap = document.createElement('div');
+		this.el.appendChild(guiWrap);
+		guiWrap.classList.add('gui-wrap');
+		guiWrap.appendChild(gui.domElement);
+		gui.open();
+	}
+
+	updateGUI() {
+		this.animCtrls.forEach(ctrl => ctrl.remove());
+		this.animCtrls.length = 0;
+		this.animFolder.domElement.style.display = 'none';
+
+		if (this.clips.length) {
+			this.animFolder.domElement.style.display = '';
+			const actionStates = this.state.actionStates = {};
+			this.clips.forEach((clip, clipIndex) => {
+				// Autoplay the first clip.
+				if (clipIndex === 0) {
+					actionStates[clip.name] = true;
+					this.mixer.play(clip.name);
+				} else {
+					actionStates[clip.name] = false;
+				}
+
+				// Play other clips when enabled.
+				const ctrl = this.animFolder.add(actionStates, clip.name).listen();
+				ctrl.onChange(playAnimation => {
+					playAnimation ? this.mixer.play(clip.name) : this.mixer.stop(clip.name);
+				});
+				this.animCtrls.push(ctrl);
+			});
+		}
 	}
 
 	clear() {

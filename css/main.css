@@ -135,3 +135,20 @@ header .separator {
     position: absolute;
     top: 0;
 }
+
+.gui-wrap {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+    pointer-events: none;
+}
+  
+.gui-wrap > .main {
+    pointer-events: all;
+}
+  
+.dg li.gui-stats:not(.folder) {
+    height: auto;
+}
