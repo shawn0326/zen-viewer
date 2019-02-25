@@ -12,6 +12,8 @@ const MAP_NAMES = [
 
 zen3d.DRACOLoader.setDecoderPath('libs/draco/');
 
+const DEFAULT_CAMERA = '[default]';
+
 class Viewer {
 
 	constructor(el) {
@@ -20,7 +22,8 @@ class Viewer {
 
 		this.state = {
 			environment: environments[1].name,
-			actionStates: []
+			actionStates: [],
+			camera: DEFAULT_CAMERA
 		};
 
 		const canvas = document.createElement('canvas');
@@ -46,15 +49,16 @@ class Viewer {
 		directionalLight.lookAt(new zen3d.Vector3(), new zen3d.Vector3(0, 1, 0));
 		this.scene.add(directionalLight);
 
-		this.camera = new zen3d.Camera();
-		this.camera.gammaFactor = 2.2;
-		// this.camera.gammaInput = true;
-		this.camera.gammaOutput = true;
-		this.camera._clip = [1, 1000];
-		this.camera.setPerspective(60 / 180 * Math.PI, el.clientWidth / el.clientHeight, 1, 1000);
-		this.scene.add(this.camera);
+		this.defaultCamera = new zen3d.Camera();
+		this.defaultCamera.gammaFactor = 2.2;
+		this.defaultCamera.gammaOutput = true;
+		this.defaultCamera._clip = [1, 1000];
+		this.defaultCamera.setPerspective(60 / 180 * Math.PI, el.clientWidth / el.clientHeight, 1, 1000);
+		this.scene.add(this.defaultCamera);
 
-		this.controls = new zen3d.OrbitControls(this.camera, canvas);
+		this.activeCamera = this.defaultCamera;
+
+		this.controls = new zen3d.OrbitControls(this.defaultCamera, canvas);
 
 		this.clock = new zen3d.Clock();
 
@@ -77,14 +81,13 @@ class Viewer {
 		requestAnimationFrame(this.animate);
 		this.controls.update();
 		this.mixer && this.mixer.update(this.clock.getDelta());
-		// this.camera.updateMatrix();
-		this.renderer.render(this.scene, this.camera);
+		this.renderer.render(this.scene, this.activeCamera);
 	}
 
 	resize() {
 		const { clientHeight, clientWidth } = this.el;
 
-		this.camera.setPerspective(60 / 180 * Math.PI, clientWidth / clientHeight, this.camera._clip[0], this.camera._clip[1]);
+		this.defaultCamera.setPerspective(60 / 180 * Math.PI, clientWidth / clientHeight, this.defaultCamera._clip[0], this.defaultCamera._clip[1]);
 
 		this.canvas.width = clientWidth * window.devicePixelRatio;
 		this.canvas.height = clientHeight * window.devicePixelRatio;
@@ -143,15 +146,17 @@ class Viewer {
 		this.controls.maxDistance = size * 10;
 
 		const { clientHeight, clientWidth } = this.el;
-		this.camera.setPerspective(60 / 180 * Math.PI, clientWidth / clientHeight, size / 100, size * 100);
-		this.camera._clip[0] = size / 100;
-		this.camera._clip[1] = size * 100;
+		this.defaultCamera.setPerspective(60 / 180 * Math.PI, clientWidth / clientHeight, size / 100, size * 100);
+		this.defaultCamera._clip[0] = size / 100;
+		this.defaultCamera._clip[1] = size * 100;
 
-		this.camera.position.copy(center);
+		this.defaultCamera.position.copy(center);
 
-		this.camera.position.x += size / 2.0;
-		this.camera.position.y += size / 5.0;
-		this.camera.position.z += size / 2.0;
+		this.defaultCamera.position.x += size / 2.0;
+		this.defaultCamera.position.y += size / 5.0;
+		this.defaultCamera.position.z += size / 2.0;
+
+		this.setCamera(DEFAULT_CAMERA);
 
 		this.scene.add(object);
 		this.content = object;
@@ -206,6 +211,25 @@ class Viewer {
 		});
 	}
 
+	/**
+     * @param {string} name
+     */
+	setCamera(name) {
+		if (name === DEFAULT_CAMERA) {
+			this.controls.enabled = true;
+			this.activeCamera = this.defaultCamera;
+		} else {
+			this.controls.enabled = false;
+			this.content.traverse((node) => {
+				if (node.type = zen3d.OBJECT_TYPE.CAMERA && node.name === name) {
+					this.activeCamera = node;
+					node.gammaFactor = 2.2;
+					node.gammaOutput = true;
+				}
+			});
+		}
+	}
+
 	addGUI() {
 		const gui = this.gui = new dat.GUI({ autoPlace: false, width: 260, hideable: true });
 
@@ -213,6 +237,10 @@ class Viewer {
 		this.animFolder = gui.addFolder('Animation');
 		this.animFolder.domElement.style.display = 'none';
 		this.animFolder.add({ playAll: () => this.playAllClips() }, 'playAll');
+
+		// Camera controls.
+		this.cameraFolder = gui.addFolder('Cameras');
+		this.cameraFolder.domElement.style.display = 'none';
 
 		const guiWrap = document.createElement('div');
 		this.el.appendChild(guiWrap);
@@ -222,9 +250,27 @@ class Viewer {
 	}
 
 	updateGUI() {
+		this.cameraFolder.domElement.style.display = 'none';
+
 		this.animCtrls.forEach(ctrl => ctrl.remove());
 		this.animCtrls.length = 0;
 		this.animFolder.domElement.style.display = 'none';
+
+		const cameraNames = [];
+		this.content.traverse(node => {
+			if (node.type == zen3d.OBJECT_TYPE.CAMERA) {
+				node.name = node.name || `VIEWER__camera_${cameraNames.length + 1}`;
+				cameraNames.push(node.name);
+			}
+		});
+
+		if (cameraNames.length) {
+			this.cameraFolder.domElement.style.display = '';
+			if (this.cameraCtrl) this.cameraCtrl.remove();
+			const cameraOptions = [DEFAULT_CAMERA].concat(cameraNames);
+			this.cameraCtrl = this.cameraFolder.add(this.state, 'camera', cameraOptions);
+			this.cameraCtrl.onChange(name => this.setCamera(name));
+		}
 
 		if (this.clips.length) {
 			this.animFolder.domElement.style.display = '';

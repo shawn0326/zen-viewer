@@ -569,8 +569,26 @@
      * @return {Promise<zen3d.Camera>}
      */
 	GLTFParser.prototype.loadCamera = function(cameraIndex) {
-		// TODO
-		console.warn("GLTFLoader: camera is not supported yet");
+		var camera = new zen3d.Camera();
+		var cameraDef = this.json.cameras[cameraIndex];
+		var params = cameraDef[cameraDef.type];
+
+		if (!params) {
+			console.warn('zen3d.GLTFLoader: Missing camera parameters.');
+			return;
+		}
+
+		if (cameraDef.type === 'perspective') {
+			camera.setPerspective(params.yfov, params.aspectRatio || 1, params.znear || 1, params.zfar || 2e6);
+		} else if (cameraDef.type === 'orthographic') {
+			camera.setOrtho(params.xmag / -2, params.xmag / 2, params.ymag / -2, params.ymag / 2, params.znear || 1, params.zfar || 2e6);
+		}
+
+		if (cameraDef.name !== undefined) camera.name = cameraDef.name;
+
+		if (cameraDef.extras) camera.userData = cameraDef.extras;
+
+		return Promise.resolve(camera);
 	}
 
 	/**
@@ -776,21 +794,18 @@
 					} else if (primitive.mode === WEBGL_CONSTANTS.LINES ||
                         primitive.mode === WEBGL_CONSTANTS.LINE_STRIP ||
                         primitive.mode === WEBGL_CONSTANTS.LINE_LOOP) {
-						if (primitive.mode === WEBGL_CONSTANTS.LINE_STRIP) {
-							// TODO
-							console.warn("GLTFLoader: LINE_STRIP not supported yet.");
-						}
-
-						var cacheKey = 'LineBasicMaterial:' + material.uuid;
+						var cacheKey = 'LineMaterial:' + material.uuid;
 
 						var lineMaterial = scope.cache.get(cacheKey);
 
 						if (!lineMaterial) {
-							lineMaterial = primitive.mode === WEBGL_CONSTANTS.LINES ? new zen3d.LineMaterial() : new zen3d.LineLoopMaterial();
+							lineMaterial = new zen3d.LineMaterial();
 							lineMaterial.lineWidth = material.lineWidth;
 							lineMaterial.diffuse.copy(material.diffuse);
 							lineMaterial.diffuseMap = material.diffuseMap;
-							lineMaterial.lights = false; // LineBasicMaterial doesn't support lights
+							lineMaterial.lights = false; // LineMaterial doesn't support lights
+
+							lineMaterial.drawMode = primitive.mode;
 
 							scope.cache.add(cacheKey, lineMaterial);
 						}
