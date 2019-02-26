@@ -206,8 +206,19 @@ class Viewer {
 
 	playAllClips() {
 		this.clips.forEach(clip => {
-			this.mixer.play(clip.name);
-			this.state.actionStates[clip.name] = true;
+			if (!this.state.actionStates[clip.name]) {
+				this.mixer.play(clip.name);
+				this.state.actionStates[clip.name] = true;
+			}
+		});
+	}
+
+	stopAllClips() {
+		this.clips.forEach(clip => {
+			if (this.state.actionStates[clip.name]) {
+				this.mixer.stop(clip.name);
+				this.state.actionStates[clip.name] = false;
+			}
 		});
 	}
 
@@ -221,7 +232,7 @@ class Viewer {
 		} else {
 			this.controls.enabled = false;
 			this.content.traverse((node) => {
-				if (node.type = zen3d.OBJECT_TYPE.CAMERA && node.name === name) {
+				if (node.type === zen3d.OBJECT_TYPE.CAMERA && node.name === name) {
 					this.activeCamera = node;
 					node.gammaFactor = 2.2;
 					node.gammaOutput = true;
@@ -237,6 +248,7 @@ class Viewer {
 		this.animFolder = gui.addFolder('Animation');
 		this.animFolder.domElement.style.display = 'none';
 		this.animFolder.add({ playAll: () => this.playAllClips() }, 'playAll');
+		this.animFolder.add({ stopAll: () => this.stopAllClips() }, 'stopAll');
 
 		// Camera controls.
 		this.cameraFolder = gui.addFolder('Cameras');
