@@ -19,11 +19,18 @@ class Viewer {
 	constructor(el) {
 		this.el = el;
 		this.content = null;
+		this.lights = [];
 
 		this.state = {
 			environment: environments[1].name,
 			actionStates: [],
-			camera: DEFAULT_CAMERA
+			camera: DEFAULT_CAMERA,
+			addLights: true,
+			textureEncoding: 'sRGB',
+			ambientIntensity: 0.3,
+			ambientColor: 0xFFFFFF,
+			directIntensity: 0.8 * Math.PI, // TODO(#116)
+			directColor: 0xFFFFFF,
 		};
 
 		const canvas = document.createElement('canvas');
@@ -38,16 +45,6 @@ class Viewer {
 		this.renderer.glCore.state.colorBuffer.setClear(0.8, 0.8, 0.8);
 
 		this.scene = new zen3d.Scene();
-
-		var ambientLight = new zen3d.AmbientLight();
-		ambientLight.intensity = 0.3 * 3.14;
-		this.scene.add(ambientLight);
-
-		var directionalLight = new zen3d.DirectionalLight(0xffffff);
-		directionalLight.position.set(-30, 30, 0);
-		directionalLight.intensity = 0.8 * 3.14;
-		directionalLight.lookAt(new zen3d.Vector3(), new zen3d.Vector3(0, 1, 0));
-		this.scene.add(directionalLight);
 
 		this.defaultCamera = new zen3d.Camera();
 		this.defaultCamera.gammaFactor = 2.2;
@@ -162,24 +159,30 @@ class Viewer {
 		this.content = object;
 
 		this.setClips(clips);
+		this.updateLights();
 		this.updateEnvironment();
+		this.updateTextureEncoding();
 
 		this.updateGUI();
 	}
 
 	updateEnvironment() {
-		const environment = environments.filter(entry => entry.name === this.state.environment)[0];
+		const environment = environments.find(entry => entry.name === this.state.environment);
 
 		const { path, format } = environment;
 
-		const cubeMapURLs = [
-			path + 'posx' + format, path + 'negx' + format,
-			path + 'posy' + format, path + 'negy' + format,
-			path + 'posz' + format, path + 'negz' + format
-		];
+		let envMap;
 
-		const envMap = zen3d.TextureCube.fromSrc(cubeMapURLs);
-		envMap.format = zen3d.WEBGL_PIXEL_FORMAT.RGB;
+		if (path !== null) {
+			const cubeMapURLs = [
+				path + 'posx' + format, path + 'negx' + format,
+				path + 'posy' + format, path + 'negy' + format,
+				path + 'posz' + format, path + 'negz' + format
+			];
+
+			envMap = zen3d.TextureCube.fromSrc(cubeMapURLs);
+			envMap.format = zen3d.WEBGL_PIXEL_FORMAT.RGB;
+		}
 
 		traverseMaterials(this.content, material => {
 			if (material.hasOwnProperty('envMap')) {
@@ -228,6 +231,7 @@ class Viewer {
 	setCamera(name) {
 		if (name === DEFAULT_CAMERA) {
 			this.controls.enabled = true;
+			this.defaultCamera.gammaOutput = this.activeCamera.gammaOutput;
 			this.activeCamera = this.defaultCamera;
 		} else {
 			this.controls.enabled = false;
@@ -235,14 +239,81 @@ class Viewer {
 				if (node.type === zen3d.OBJECT_TYPE.CAMERA && node.name === name) {
 					this.activeCamera = node;
 					node.gammaFactor = 2.2;
-					node.gammaOutput = true;
+					node.gammaOutput = this.defaultCamera.gammaOutput;
 				}
 			});
 		}
 	}
 
+	updateTextureEncoding() {
+		const encoding = this.state.textureEncoding === 'sRGB'
+			? zen3d.TEXEL_ENCODING_TYPE.SRGB
+			: zen3d.TEXEL_ENCODING_TYPE.LINEAR;
+		traverseMaterials(this.content, (material) => {
+			if (material.diffuseMap) material.diffuseMap.encoding = encoding;
+			if (material.emissiveMap) material.emissiveMap.encoding = encoding;
+			if (material.diffuseMap || material.emissiveMap) material.version++;
+		});
+	}
+
+	updateLights() {
+		const state = this.state;
+		const lights = this.lights;
+
+		if (state.addLights && !lights.length) {
+			this.addLights();
+		} else if (!state.addLights && lights.length) {
+			this.removeLights();
+		}
+
+		if (lights.length === 2) {
+			lights[0].intensity = state.ambientIntensity;
+			lights[0].color.setHex(state.ambientColor);
+			lights[1].intensity = state.directIntensity;
+			lights[1].color.setHex(state.directColor);
+		}
+	}
+
+	addLights() {
+		const state = this.state;
+
+		const ambientLight = new zen3d.AmbientLight();
+		ambientLight.color.setHex(state.ambientColor);
+		ambientLight.intensity = state.ambientIntensity;
+		this.scene.add(ambientLight);
+
+		const directionalLight = new zen3d.DirectionalLight();
+		directionalLight.color.setHex(state.directColor);
+		directionalLight.position.set(0.5, 0, 0.866); // ~60º
+		directionalLight.intensity = state.directIntensity;
+		directionalLight.lookAt(new zen3d.Vector3(), new zen3d.Vector3(0, 1, 0));
+		this.scene.add(directionalLight);
+
+		this.lights.push(ambientLight, directionalLight);
+	}
+
+	removeLights() {
+		this.lights.forEach(light => light.parent.remove(light));
+		this.lights.length = 0;
+	}
+
 	addGUI() {
 		const gui = this.gui = new dat.GUI({ autoPlace: false, width: 260, hideable: true });
+
+		// Lighting controls.
+		const lightFolder = gui.addFolder('Lighting');
+		const encodingCtrl = lightFolder.add(this.state, 'textureEncoding', ['sRGB', 'Linear']);
+		encodingCtrl.onChange(() => this.updateTextureEncoding());
+		lightFolder.add(this.activeCamera, 'gammaOutput');
+		const envMapCtrl = lightFolder.add(this.state, 'environment', environments.map(env => env.name));
+		envMapCtrl.onChange(() => this.updateEnvironment());
+		[
+			lightFolder.add(this.state, 'addLights').listen(),
+			lightFolder.add(this.state, 'ambientIntensity', 0, 2),
+			lightFolder.addColor(this.state, 'ambientColor'),
+			lightFolder.add(this.state, 'directIntensity', 0, 4),
+			lightFolder.addColor(this.state, 'directColor')
+		].forEach(ctrl => ctrl.onChange(() => this.updateLights()));
 
 		// Animation controls.
 		this.animFolder = gui.addFolder('Animation');
