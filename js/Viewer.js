@@ -252,7 +252,7 @@ class Viewer {
 		traverseMaterials(this.content, (material) => {
 			if (material.diffuseMap) material.diffuseMap.encoding = encoding;
 			if (material.emissiveMap) material.emissiveMap.encoding = encoding;
-			if (material.diffuseMap || material.emissiveMap) material.version++;
+			if (material.diffuseMap || material.emissiveMap) material.needsUpdate = true;
 		});
 	}
 
@@ -280,14 +280,14 @@ class Viewer {
 		const ambientLight = new zen3d.AmbientLight();
 		ambientLight.color.setHex(state.ambientColor);
 		ambientLight.intensity = state.ambientIntensity;
-		this.scene.add(ambientLight);
+		this.defaultCamera.add(ambientLight);
 
 		const directionalLight = new zen3d.DirectionalLight();
 		directionalLight.color.setHex(state.directColor);
 		directionalLight.position.set(0.5, 0, 0.866); // ~60º
 		directionalLight.intensity = state.directIntensity;
 		directionalLight.lookAt(new zen3d.Vector3(), new zen3d.Vector3(0, 1, 0));
-		this.scene.add(directionalLight);
+		this.defaultCamera.add(directionalLight);
 
 		this.lights.push(ambientLight, directionalLight);
 	}
