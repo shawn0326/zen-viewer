@@ -388,7 +388,6 @@
 					var skinEntry = skins[nodeDef.skin];
 
 					var bones = [];
-					// var boneInverses = [];
 
 					for (var j = 0, jl = skinEntry.joints.length; j < jl; j++) {
 						var jointId = skinEntry.joints[j];
@@ -405,7 +404,6 @@
 
 							// copy mat to jointNode.offsetMatrix
 							jointNode.offsetMatrix.copy(mat);
-							// boneInverses.push(mat);
 						} else {
 							console.warn('GLTFLoader: Joint "%s" could not be found.', jointId);
 						}
@@ -1225,10 +1223,8 @@
 
 		if (alphaMode === ALPHA_MODES.BLEND) {
 			materialParams.transparent = true;
-			materialParams.depthWrite = false;
 		} else {
 			materialParams.transparent = false;
-			materialParams.depthWrite = true;
 
 			if (alphaMode === ALPHA_MODES.MASK) {
 				materialParams.alphaTest = materialDef.alphaCutoff !== undefined ? materialDef.alphaCutoff : 0.5;
@@ -1248,7 +1244,6 @@
 			// }
 		}
 
-		// AOMap support
 		if (materialDef.occlusionTexture !== undefined) {
         	pending.push(parser.assignTexture(materialParams, 'aoMap', materialDef.occlusionTexture.index));
 
