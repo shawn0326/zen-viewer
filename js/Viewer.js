@@ -1,4 +1,5 @@
 import environments from '../assets/environment/index.js';
+import AdvancedRenderer from './AdvancedRenderer.js';
 
 const MAP_NAMES = [
 	'diffuseMap',
@@ -30,7 +31,7 @@ class Viewer {
 			ambientIntensity: 0.3,
 			ambientColor: 0xFFFFFF,
 			directIntensity: 0.8 * Math.PI, // TODO(#116)
-			directColor: 0xFFFFFF,
+			directColor: 0xFFFFFF
 		};
 
 		const canvas = document.createElement('canvas');
@@ -41,8 +42,7 @@ class Viewer {
 		this.canvas = canvas;
 		this.el.appendChild(canvas);
 
-		this.renderer = new zen3d.Renderer(canvas);
-		this.renderer.glCore.state.colorBuffer.setClear(0.8, 0.8, 0.8);
+		this.renderer = new AdvancedRenderer(canvas);
 
 		this.scene = new zen3d.Scene();
 
@@ -76,8 +76,13 @@ class Viewer {
 
 	animate(time) {
 		requestAnimationFrame(this.animate);
-		this.controls.update();
-		this.mixer && this.mixer.update(this.clock.getDelta());
+		if (this.controls.update()) {
+			this.renderer.dirty();
+		}
+		if (this.mixer) {
+			this.renderer.dirty();
+			this.mixer.update(this.clock.getDelta());
+		}
 		this.renderer.render(this.scene, this.activeCamera);
 	}
 
@@ -86,12 +91,10 @@ class Viewer {
 
 		this.defaultCamera.setPerspective(60 / 180 * Math.PI, clientWidth / clientHeight, this.defaultCamera._clip[0], this.defaultCamera._clip[1]);
 
-		this.canvas.width = clientWidth * window.devicePixelRatio;
-		this.canvas.height = clientHeight * window.devicePixelRatio;
 		this.canvas.style.width = clientWidth + "px";
 		this.canvas.style.height = clientHeight + "px";
 
-		this.renderer.backRenderTarget.resize(clientWidth * window.devicePixelRatio, clientHeight * window.devicePixelRatio);
+		this.renderer.resize(clientWidth * window.devicePixelRatio, clientHeight * window.devicePixelRatio);
 	}
 
 	load(url, rootPath, assetMap) {
@@ -164,6 +167,9 @@ class Viewer {
 		this.updateTextureEncoding();
 
 		this.updateGUI();
+
+		this.renderer.config.taa = !clips.length; // TODO
+		this.renderer.dirty();
 	}
 
 	updateEnvironment() {
@@ -190,6 +196,8 @@ class Viewer {
 				material.needsUpdate = true;
 			}
 		});
+
+		this.renderer.dirty();
 	}
 
 	setClips(clips) {
@@ -243,6 +251,8 @@ class Viewer {
 				}
 			});
 		}
+
+		this.renderer.dirty();
 	}
 
 	updateTextureEncoding() {
@@ -254,6 +264,8 @@ class Viewer {
 			if (material.emissiveMap) material.emissiveMap.encoding = encoding;
 			if (material.diffuseMap || material.emissiveMap) material.needsUpdate = true;
 		});
+
+		this.renderer.dirty();
 	}
 
 	updateLights() {
@@ -272,6 +284,8 @@ class Viewer {
 			lights[1].intensity = state.directIntensity;
 			lights[1].color.setHex(state.directColor);
 		}
+
+		this.renderer.dirty();
 	}
 
 	addLights() {
@@ -304,7 +318,7 @@ class Viewer {
 		const lightFolder = gui.addFolder('Lighting');
 		const encodingCtrl = lightFolder.add(this.state, 'textureEncoding', ['sRGB', 'Linear']);
 		encodingCtrl.onChange(() => this.updateTextureEncoding());
-		lightFolder.add(this.activeCamera, 'gammaOutput');
+		lightFolder.add(this.activeCamera, 'gammaOutput').onChange(() => this.renderer.dirty());
 		const envMapCtrl = lightFolder.add(this.state, 'environment', environments.map(env => env.name));
 		envMapCtrl.onChange(() => this.updateEnvironment());
 		[
@@ -324,6 +338,11 @@ class Viewer {
 		// Camera controls.
 		this.cameraFolder = gui.addFolder('Cameras');
 		this.cameraFolder.domElement.style.display = 'none';
+
+		// Effect controls.
+		this.effectFolder = gui.addFolder('Effects');
+		this.effectFolder.add(this.renderer.config, 'taa').listen().onChange(() => this.renderer.dirty());
+		this.effectFolder.add(this.renderer.config, 'fxaa').onChange(() => this.renderer.dirty());
 
 		const guiWrap = document.createElement('div');
 		this.el.appendChild(guiWrap);
