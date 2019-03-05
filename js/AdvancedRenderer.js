@@ -33,9 +33,12 @@ class AdvancedRenderer {
 	resize(width, height) {
 		this.sampleRenderTarget.resize(width, height);
 		this.tempRenderTarget.resize(width, height);
+
 		this.backRenderTarget.resize(width, height);
 
 		this.superSampling.resize(width, height);
+
+		this.dirty();
 	}
 
 	render(scene, camera) {
