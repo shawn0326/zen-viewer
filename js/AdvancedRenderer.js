@@ -25,7 +25,7 @@ class AdvancedRenderer {
 		this.copyPass = new zen3d.ShaderPostPass(zen3d.CopyShader);
 		this.fxaaPass = new zen3d.ShaderPostPass(zen3d.FXAAShader);
 
-		this.superSampling = new zen3d.SuperSampling(canvas.width, canvas.height);
+		this.superSampling = new zen3d.SuperSampling(canvas.width, canvas.height, 30);
 
 		this.config = { taa: true, fxaa: false };
 	}

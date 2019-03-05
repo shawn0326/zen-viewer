@@ -413,6 +413,8 @@ class Viewer {
 				if (material[map]) material[map].dispose();
 			});
 		});
+
+		this.renderer.dirty();
 	}
 
 }

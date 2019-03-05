@@ -6,15 +6,19 @@ class App {
 		this.el = el;
 		this.viewer = null;
 		this.viewerEl = null;
+		this.spinnerEl = el.querySelector('.spinner');
 		this.dropEl = document.querySelector('.dropzone');
 		this.inputEl = document.querySelector('#file-input');
 
 		this.createDropzone();
+		this.hideSpinner();
 	}
 
 	createDropzone() {
 		const dropCtrl = new SimpleDropzone(this.dropEl, this.inputEl);
 		dropCtrl.on('drop', ({ files }) => this.load(files));
+		dropCtrl.on('dropstart', () => this.showSpinner());
+		dropCtrl.on('droperror', () => this.hideSpinner());
 	}
 
 	createViewer() {
@@ -52,9 +56,17 @@ class App {
 			? rootFile
 			: URL.createObjectURL(rootFile);
 
+		const cleanup = () => {
+			this.hideSpinner();
+			if (typeof rootFile === 'object') URL.revokeObjectURL(fileURL);
+		};
+
 		viewer
 			.load(fileURL, rootPath, fileMap)
-			.catch((e) => this.onError(e));
+			.catch(e => this.onError(e))
+			.then(gltf => {
+				cleanup();
+			});
 	}
 
 	onError(error) {
@@ -68,6 +80,14 @@ class App {
 		}
 		window.alert(message);
 		console.error(error);
+	}
+
+	showSpinner() {
+		this.spinnerEl.style.display = '';
+	}
+
+	hideSpinner() {
+		this.spinnerEl.style.display = 'none';
 	}
 
 }
