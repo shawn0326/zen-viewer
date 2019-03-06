@@ -26,6 +26,8 @@ class Viewer {
 			environment: environments[1].name,
 			actionStates: [],
 			camera: DEFAULT_CAMERA,
+			skeleton: false,
+			grid: false,
 			addLights: true,
 			textureEncoding: 'sRGB',
 			ambientIntensity: 0.3,
@@ -66,6 +68,8 @@ class Viewer {
 
 		this.animFolder = null;
 		this.animCtrls = [];
+		this.skeletonHelpers = [];
+		this.gridHelper = null;
 
 		this.addGUI();
 
@@ -143,6 +147,8 @@ class Viewer {
 		object.position.y += (object.position.y - center.y);
 		object.position.z += (object.position.z - center.z);
 
+		this.controls.reset();
+
 		this.controls.maxDistance = size * 10;
 
 		const { clientHeight, clientWidth } = this.el;
@@ -158,6 +164,8 @@ class Viewer {
 
 		this.setCamera(DEFAULT_CAMERA);
 
+		this.controls.saveState();
+
 		this.scene.add(object);
 		this.content = object;
 
@@ -165,6 +173,7 @@ class Viewer {
 		this.updateLights();
 		this.updateEnvironment();
 		this.updateTextureEncoding();
+		this.updateDisplay();
 
 		this.updateGUI();
 
@@ -175,30 +184,40 @@ class Viewer {
 	updateEnvironment() {
 		const environment = environments.find(entry => entry.name === this.state.environment);
 
+		this.getCubeMapTexture(environment).then(texture => {
+			traverseMaterials(this.content, material => {
+				if (material.hasOwnProperty('envMap')) {
+					material.envMap = texture;
+					material.needsUpdate = true;
+				}
+			});
+
+			this.renderer.dirty();
+		});
+	}
+
+	getCubeMapTexture(environment) {
 		const { path, format } = environment;
 
-		let envMap;
+		// no envmap
+		if (!path) return Promise.resolve(null);
 
-		if (path !== null) {
-			const cubeMapURLs = [
-				path + 'posx' + format, path + 'negx' + format,
-				path + 'posy' + format, path + 'negy' + format,
-				path + 'posz' + format, path + 'negz' + format
-			];
+		const cubeMapURLs = [
+			path + 'posx' + format, path + 'negx' + format,
+			path + 'posy' + format, path + 'negy' + format,
+			path + 'posz' + format, path + 'negz' + format
+		];
 
-			envMap = zen3d.TextureCube.fromSrc(cubeMapURLs);
-			envMap.format = zen3d.WEBGL_PIXEL_FORMAT.RGB;
-		}
+		const texture = zen3d.TextureCube.fromSrc(cubeMapURLs);
+		texture.format = zen3d.WEBGL_PIXEL_FORMAT.RGB;
 
-		traverseMaterials(this.content, material => {
-			if (material.hasOwnProperty('envMap')) {
-				material.envMap = envMap;
-				material.needsUpdate = true;
-			}
+		return new Promise(resolve => {
+			texture.addEventListener('onload', () => {
+				resolve(texture);
+			});
 		});
-
-		this.renderer.dirty();
 	}
+
 
 	setClips(clips) {
 		if (this.mixer) {
@@ -311,8 +330,43 @@ class Viewer {
 		this.lights.length = 0;
 	}
 
+	updateDisplay() {
+		if (this.skeletonHelpers.length) {
+			this.skeletonHelpers.forEach(helper => this.scene.remove(helper));
+		}
+
+		this.content.traverse(node => {
+			if (node.geometry && node.skeleton && this.state.skeleton) {
+				const helper = new zen3d.SkeletonHelper(this.scene);
+				this.scene.add(helper);
+				this.skeletonHelpers.push(helper);
+			}
+		});
+
+		if (this.state.grid !== Boolean(this.gridHelper)) {
+			if (this.state.grid) {
+				this.gridHelper = new zen3d.GridHelper();
+				this.scene.add(this.gridHelper);
+			} else {
+				this.scene.remove(this.gridHelper);
+				this.gridHelper = null;
+			}
+		}
+
+		this.renderer.dirty();
+	}
+
 	addGUI() {
 		const gui = this.gui = new dat.GUI({ autoPlace: false, width: 260, hideable: true });
+
+		// Display controls.
+		const dispFolder = gui.addFolder('Display');
+		const skeletonCtrl = dispFolder.add(this.state, 'skeleton');
+		skeletonCtrl.onChange(() => this.updateDisplay());
+		const gridCtrl = dispFolder.add(this.state, 'grid');
+		gridCtrl.onChange(() => this.updateDisplay());
+		dispFolder.add(this.controls, 'autoRotate');
+		dispFolder.add(this.controls, 'screenSpacePanning');
 
 		// Lighting controls.
 		const lightFolder = gui.addFolder('Lighting');
@@ -402,8 +456,8 @@ class Viewer {
 		this.scene.remove(this.content);
 
 		// dispose geometry
-		this.content.traverse((node) => {
-			if (!node.isMesh) return;
+		this.content.traverse(node => {
+			if (!node.geometry) return;
 			node.geometry.dispose();
 		});
 
