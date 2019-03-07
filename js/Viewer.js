@@ -397,6 +397,11 @@ class Viewer {
 		this.effectFolder = gui.addFolder('Effects');
 		this.effectFolder.add(this.renderer.config, 'taa').listen().onChange(() => this.renderer.dirty());
 		this.effectFolder.add(this.renderer.config, 'fxaa').onChange(() => this.renderer.dirty());
+		const bloomFolder = this.effectFolder.addFolder('bloom');
+		bloomFolder.add(this.renderer.config, 'bloom').name('enable').onChange(() => this.renderer.dirty());
+		bloomFolder.add(this.renderer.bloomEffect, 'threshold', 0, 1).onChange(() => this.renderer.dirty());
+		bloomFolder.add(this.renderer.bloomEffect, 'intensity', 0, 5).onChange(() => this.renderer.dirty());
+		bloomFolder.add(this.renderer.bloomEffect, 'radius', 0, 5).onChange(() => this.renderer.dirty());
 
 		const guiWrap = document.createElement('div');
 		this.el.appendChild(guiWrap);

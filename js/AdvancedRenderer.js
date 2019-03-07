@@ -1,3 +1,5 @@
+import { BloomEffect } from './effects/BloomEffect.js';
+
 const oldProjectionMatrix = new zen3d.Matrix4();
 
 class AdvancedRenderer {
@@ -18,32 +20,47 @@ class AdvancedRenderer {
 		this.tempRenderTarget.texture.magFilter = zen3d.WEBGL_TEXTURE_FILTER.LINEAR;
 		this.tempRenderTarget.texture.generateMipmaps = false;
 
+		this.tempRenderTarget2 = new zen3d.RenderTarget2D(canvas.width, canvas.height);
+		this.tempRenderTarget2.texture.minFilter = zen3d.WEBGL_TEXTURE_FILTER.LINEAR;
+		this.tempRenderTarget2.texture.magFilter = zen3d.WEBGL_TEXTURE_FILTER.LINEAR;
+		this.tempRenderTarget2.texture.generateMipmaps = false;
+
 		this.backRenderTarget = new zen3d.RenderTargetBack(canvas);
 
 		// this.shadowMapPass = new zen3d.ShadowMapPass();
 
 		this.copyPass = new zen3d.ShaderPostPass(zen3d.CopyShader);
+		this.copyPass.material.transparent = true;
 		this.fxaaPass = new zen3d.ShaderPostPass(zen3d.FXAAShader);
+		this.fxaaPass.material.transparent = true;
+		this.fxaaPass.uniforms["resolution"] = [1 / canvas.width, 1 / canvas.height];
 
 		this.superSampling = new zen3d.SuperSampling(canvas.width, canvas.height, 30);
 
-		this.config = { taa: true, fxaa: false };
+		this.bloomEffect = new BloomEffect(canvas.width, canvas.height);
+
+		this.config = { taa: true, fxaa: false, bloom: false };
 	}
 
 	resize(width, height) {
 		this.sampleRenderTarget.resize(width, height);
 		this.tempRenderTarget.resize(width, height);
+		this.tempRenderTarget2.resize(width, height);
 
 		this.backRenderTarget.resize(width, height);
 
 		this.superSampling.resize(width, height);
+
+		this.bloomEffect.resize(width, height);
+
+		this.fxaaPass.uniforms["resolution"] = [1 / width, 1 / height];
 
 		this.dirty();
 	}
 
 	render(scene, camera) {
 		if (this.glCore.capabilities.version >= 2) {
-			let tex;
+			let tex, target;
 
 			if (this.config.taa) {
 				if (!this.superSampling.finished()) {
@@ -55,9 +72,16 @@ class AdvancedRenderer {
 
 					this._renderToTempMSAA(scene, camera);
 
+					target = this.tempRenderTarget;
+
+					if (this.config.bloom) {
+						this.bloomEffect.apply(this.glCore, target, this.tempRenderTarget2);
+						target = this.tempRenderTarget2;
+					}
+
 					camera.projectionMatrix.copy(oldProjectionMatrix);
 
-					tex = this.superSampling.sample(this.glCore, this.tempRenderTarget.texture);
+					tex = this.superSampling.sample(this.glCore, target.texture);
 				} else {
 					tex = this.superSampling.output();
 				}
@@ -67,12 +91,19 @@ class AdvancedRenderer {
 
 				this._renderToTempMSAA(scene, camera);
 
-				tex = this.tempRenderTarget.texture;
+				target = this.tempRenderTarget;
+
+				if (this.config.bloom) {
+					this.bloomEffect.apply(this.glCore, target, this.tempRenderTarget2);
+					target = this.tempRenderTarget2;
+				}
+
+				tex = target.texture;
 			}
 
 			this.glCore.renderTarget.setRenderTarget(this.backRenderTarget);
 
-			this.glCore.state.colorBuffer.setClear(0, 0, 0);
+			this.glCore.state.colorBuffer.setClear(0.8, 0.8, 0.8, 1);
 			this.glCore.clear(true, true, true);
 
 			if (this.config.fxaa) {
@@ -88,7 +119,7 @@ class AdvancedRenderer {
 
 			this.glCore.renderTarget.setRenderTarget(this.backRenderTarget);
 
-			this.glCore.state.colorBuffer.setClear(0.8, 0.8, 0.8);
+			this.glCore.state.colorBuffer.setClear(0.8, 0.8, 0.8, 1);
 			this.glCore.clear(true, true, true);
 
 			this.glCore.render(scene, camera);
@@ -98,7 +129,7 @@ class AdvancedRenderer {
 	_renderToTempMSAA(scene, camera) {
 		this.glCore.renderTarget.setRenderTarget(this.sampleRenderTarget);
 
-		this.glCore.state.colorBuffer.setClear(0.8, 0.8, 0.8);
+		this.glCore.state.colorBuffer.setClear(0, 0, 0, 0);
 		this.glCore.clear(true, true, true);
 
 		this.glCore.render(scene, camera);
@@ -109,6 +140,7 @@ class AdvancedRenderer {
 
 	dirty() {
 		this.superSampling.start();
+		this.bloomEffect.dirty();
 	}
 
 }
