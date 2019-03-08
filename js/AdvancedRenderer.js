@@ -58,8 +58,11 @@ class AdvancedRenderer {
 		this.dirty();
 	}
 
-	render(scene, camera) {
-		if (this.glCore.capabilities.version >= 2) {
+	render(scene, camera, clear, forceSimple) {
+		clear = clear !== undefined ? clear : true;
+		forceSimple = forceSimple !== undefined ? forceSimple : false;
+
+		if (this.glCore.capabilities.version >= 2 && !forceSimple) {
 			let tex, target;
 
 			if (this.config.taa) {
@@ -103,8 +106,10 @@ class AdvancedRenderer {
 
 			this.glCore.renderTarget.setRenderTarget(this.backRenderTarget);
 
-			this.glCore.state.colorBuffer.setClear(0.8, 0.8, 0.8, 1);
-			this.glCore.clear(true, true, true);
+			if (clear) {
+				this.glCore.state.colorBuffer.setClear(0, 0, 0, 0);
+				this.glCore.clear(true, true, true);
+			}
 
 			if (this.config.fxaa) {
 				this.fxaaPass.uniforms.tDiffuse = tex;
@@ -119,8 +124,10 @@ class AdvancedRenderer {
 
 			this.glCore.renderTarget.setRenderTarget(this.backRenderTarget);
 
-			this.glCore.state.colorBuffer.setClear(0.8, 0.8, 0.8, 1);
-			this.glCore.clear(true, true, true);
+			if (clear) {
+				this.glCore.state.colorBuffer.setClear(0.8, 0.8, 0.8, 1);
+				this.glCore.clear(true, true, true);
+			}
 
 			this.glCore.render(scene, camera);
 		}

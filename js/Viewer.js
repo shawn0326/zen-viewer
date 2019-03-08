@@ -24,6 +24,7 @@ class Viewer {
 
 		this.state = {
 			environment: environments[1].name,
+			background: false,
 			actionStates: [],
 			camera: DEFAULT_CAMERA,
 			skeleton: false,
@@ -59,6 +60,15 @@ class Viewer {
 
 		this.controls = new zen3d.OrbitControls(this.defaultCamera, canvas);
 
+		this.backgroundScene = new zen3d.Scene();
+		this.backgroundCamera = new zen3d.Camera();
+		this.backgroundScene.add(this.backgroundCamera);
+
+		this.skyBox = new zen3d.SkyBox(null);
+		this.skyBox.level = 4;
+		this.skyBox.visible = false;
+		this.backgroundCamera.add(this.skyBox);
+
 		this.clock = new zen3d.Clock();
 
 		this.mixer = null;
@@ -87,7 +97,11 @@ class Viewer {
 			this.renderer.dirty();
 			this.mixer.update(this.clock.getDelta());
 		}
-		this.renderer.render(this.scene, this.activeCamera);
+
+		this.backgroundCamera.copy(this.activeCamera);
+		this.renderer.render(this.backgroundScene, this.backgroundCamera, true, true);
+
+		this.renderer.render(this.scene, this.activeCamera, false);
 	}
 
 	resize() {
@@ -185,6 +199,9 @@ class Viewer {
 		const environment = environments.find(entry => entry.name === this.state.environment);
 
 		this.getCubeMapTexture(environment).then(texture => {
+			this.skyBox.material.cubeMap = texture;
+			this.skyBox.visible = !!texture && this.state.background;
+
 			traverseMaterials(this.content, material => {
 				if (material.hasOwnProperty('envMap')) {
 					material.envMap = texture;
@@ -361,6 +378,9 @@ class Viewer {
 
 		// Display controls.
 		const dispFolder = gui.addFolder('Display');
+		const envBackgroundCtrl = dispFolder.add(this.state, 'background');
+		envBackgroundCtrl.onChange(() => this.updateEnvironment());
+		dispFolder.add(this.skyBox, 'level', 0, 8, 1).name('backgroundLOD');
 		const skeletonCtrl = dispFolder.add(this.state, 'skeleton');
 		skeletonCtrl.onChange(() => this.updateDisplay());
 		const gridCtrl = dispFolder.add(this.state, 'grid');
