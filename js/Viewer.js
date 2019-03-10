@@ -422,6 +422,11 @@ class Viewer {
 		bloomFolder.add(this.renderer.bloomEffect, 'threshold', 0, 1).onChange(() => this.renderer.dirty());
 		bloomFolder.add(this.renderer.bloomEffect, 'intensity', 0, 5).onChange(() => this.renderer.dirty());
 		bloomFolder.add(this.renderer.bloomEffect, 'radius', 0, 5).onChange(() => this.renderer.dirty());
+		const ssaoFolder = this.effectFolder.addFolder('ssao');
+		ssaoFolder.add(this.renderer.config, 'ssao').name('enable').onChange(() => this.renderer.dirty());
+		ssaoFolder.add(this.renderer.ssaoEffect.ssaoPass.uniforms, 'intensity', 0, 5, 0.1).onChange(() => this.renderer.dirty());
+		ssaoFolder.add(this.renderer.ssaoEffect.ssaoPass.uniforms, 'radius', 0.1, 30, 0.1).onChange(() => this.renderer.dirty());
+		ssaoFolder.add(this.renderer.ssaoEffect.ssaoPass.uniforms, 'bias', 0, 1, 0.01).onChange(() => this.renderer.dirty());
 
 		const guiWrap = document.createElement('div');
 		this.el.appendChild(guiWrap);

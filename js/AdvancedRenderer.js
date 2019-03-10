@@ -1,4 +1,5 @@
 import { BloomEffect } from './effects/BloomEffect.js';
+import { SSAOEffect } from './effects/SSAOEffect.js';
 
 const oldProjectionMatrix = new zen3d.Matrix4();
 
@@ -27,6 +28,9 @@ class AdvancedRenderer {
 
 		this.backRenderTarget = new zen3d.RenderTargetBack(canvas);
 
+		this.gBuffer = new zen3d.GBuffer(canvas.width, canvas.height);
+		this.gBuffer.enableAlbedoMetalness = false;
+
 		// this.shadowMapPass = new zen3d.ShadowMapPass();
 
 		this.copyPass = new zen3d.ShaderPostPass(zen3d.CopyShader);
@@ -39,7 +43,9 @@ class AdvancedRenderer {
 
 		this.bloomEffect = new BloomEffect(canvas.width, canvas.height);
 
-		this.config = { taa: true, fxaa: false, bloom: false };
+		this.ssaoEffect = new SSAOEffect(canvas.width, canvas.height);
+
+		this.config = { taa: true, fxaa: false, bloom: false, ssao: false };
 	}
 
 	resize(width, height) {
@@ -49,9 +55,12 @@ class AdvancedRenderer {
 
 		this.backRenderTarget.resize(width, height);
 
+		this.gBuffer.resize(width, height);
+
 		this.superSampling.resize(width, height);
 
 		this.bloomEffect.resize(width, height);
+		this.ssaoEffect.resize(width, height);
 
 		this.fxaaPass.uniforms["resolution"] = [1 / width, 1 / height];
 
@@ -63,45 +72,59 @@ class AdvancedRenderer {
 		forceSimple = forceSimple !== undefined ? forceSimple : false;
 
 		if (this.glCore.capabilities.version >= 2 && !forceSimple) {
-			let tex, target;
+			let tex, read, write, temp;
 
 			if (this.config.taa) {
 				if (!this.superSampling.finished()) {
-					scene.updateMatrix();
-					scene.updateLights();
-
 					oldProjectionMatrix.copy(camera.projectionMatrix);
 					this.superSampling.jitterProjection(camera, this.backRenderTarget.width, this.backRenderTarget.height);
 
 					this._renderToTempMSAA(scene, camera);
 
-					target = this.tempRenderTarget;
+					read = this.tempRenderTarget;
+					write = this.tempRenderTarget2;
+
+					if (this.config.ssao) {
+						this.ssaoEffect.apply(this.glCore, this.gBuffer, camera, read, write, this.superSampling.frame());
+						temp = read;
+						read = write;
+						write = temp;
+					}
 
 					if (this.config.bloom) {
-						this.bloomEffect.apply(this.glCore, target, this.tempRenderTarget2);
-						target = this.tempRenderTarget2;
+						this.bloomEffect.apply(this.glCore, read, write);
+						temp = read;
+						read = write;
+						write = temp;
 					}
 
 					camera.projectionMatrix.copy(oldProjectionMatrix);
 
-					tex = this.superSampling.sample(this.glCore, target.texture);
+					tex = this.superSampling.sample(this.glCore, read.texture);
 				} else {
 					tex = this.superSampling.output();
 				}
 			} else {
-				scene.updateMatrix();
-				scene.updateLights();
-
 				this._renderToTempMSAA(scene, camera);
 
-				target = this.tempRenderTarget;
+				read = this.tempRenderTarget;
+				write = this.tempRenderTarget2;
 
-				if (this.config.bloom) {
-					this.bloomEffect.apply(this.glCore, target, this.tempRenderTarget2);
-					target = this.tempRenderTarget2;
+				if (this.config.ssao) {
+					this.ssaoEffect.apply(this.glCore, this.gBuffer, camera, read, write, 0);
+					temp = read;
+					read = write;
+					write = temp;
 				}
 
-				tex = target.texture;
+				if (this.config.bloom) {
+					this.bloomEffect.apply(this.glCore, read, write);
+					temp = read;
+					read = write;
+					write = temp;
+				}
+
+				tex = read.texture;
 			}
 
 			this.glCore.renderTarget.setRenderTarget(this.backRenderTarget);
@@ -134,12 +157,21 @@ class AdvancedRenderer {
 	}
 
 	_renderToTempMSAA(scene, camera) {
+		scene.updateMatrix();
+		scene.updateLights();
+
+		scene.updateRenderList(camera);
+
+		if (this.config.ssao) {
+			this.gBuffer.update(this.glCore, scene, camera);
+		}
+
 		this.glCore.renderTarget.setRenderTarget(this.sampleRenderTarget);
 
 		this.glCore.state.colorBuffer.setClear(0, 0, 0, 0);
 		this.glCore.clear(true, true, true);
 
-		this.glCore.render(scene, camera);
+		this.glCore.render(scene, camera, false);
 
 		this.glCore.renderTarget.setRenderTarget(this.tempRenderTarget);
 		this.glCore.renderTarget.blitRenderTarget(this.sampleRenderTarget, this.tempRenderTarget);

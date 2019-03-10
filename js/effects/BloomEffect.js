@@ -1,53 +1,4 @@
-const BloomShader = {
-
-	uniforms: {
-
-		"tDiffuse": null,
-		"tBloom": null,
-		"intensity": 1.0
-
-	},
-
-	vertexShader: [
-
-		"attribute vec3 a_Position;",
-		"attribute vec2 a_Uv;",
-
-		"uniform mat4 u_Projection;",
-		"uniform mat4 u_View;",
-		"uniform mat4 u_Model;",
-
-		"varying vec2 v_Uv;",
-
-		"void main() {",
-
-		"v_Uv = a_Uv;",
-		"gl_Position = u_Projection * u_View * u_Model * vec4( a_Position, 1.0 );",
-
-		"}"
-
-	].join("\n"),
-
-	fragmentShader: [
-
-		"uniform sampler2D tDiffuse;",
-		"uniform sampler2D tBloom;",
-
-		"uniform float intensity;",
-
-		"varying vec2 v_Uv;",
-
-		"void main() {",
-
-		"vec4 color = texture2D( tDiffuse, v_Uv );",
-		"color.rgb += texture2D( tBloom, v_Uv ).rgb * intensity;",
-		"gl_FragColor = color;",
-
-		"}"
-
-	].join("\n")
-
-}
+import { AdditiveBlendShader } from '../shaders/AdditiveBlendShader.js';
 
 class BloomEffect {
 
@@ -57,7 +8,7 @@ class BloomEffect {
 		this.blurPass = new zen3d.BlurPass(zen3d.BlurShader);
 		this.blurPass.setKernelSize(13);
 
-		this.bloomPass = new zen3d.ShaderPostPass(BloomShader);
+		this.bloomPass = new zen3d.ShaderPostPass(AdditiveBlendShader);
 
 		this.threshold = 0.7;
 		this.intensity = 1;
@@ -113,8 +64,8 @@ class BloomEffect {
 
 		glCore.renderTarget.setRenderTarget(output);
 
-		this.bloomPass.uniforms.tDiffuse = input.texture;
-		this.bloomPass.uniforms.tBloom = this.tempRenderTarget.texture;
+		this.bloomPass.uniforms.tDst = input.texture;
+		this.bloomPass.uniforms.tSrc = this.tempRenderTarget.texture;
 		this.bloomPass.uniforms.intensity = this.intensity;
 		this.bloomPass.render(glCore);
 	}
