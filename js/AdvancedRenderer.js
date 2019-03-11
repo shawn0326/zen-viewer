@@ -42,10 +42,14 @@ class AdvancedRenderer {
 		this.superSampling = new zen3d.SuperSampling(canvas.width, canvas.height, 30);
 
 		this.bloomEffect = new BloomEffect(canvas.width, canvas.height);
+		this.bloomEffect.enable = false;
 
 		this.ssaoEffect = new SSAOEffect(canvas.width, canvas.height);
+		this.ssaoEffect.enable = false;
 
-		this.config = { taa: true, fxaa: false, bloom: false, ssao: false };
+		this._effects = [this.bloomEffect, this.ssaoEffect];
+
+		this.config = { taa: true, fxaa: false };
 	}
 
 	resize(width, height) {
@@ -84,19 +88,14 @@ class AdvancedRenderer {
 					read = this.tempRenderTarget;
 					write = this.tempRenderTarget2;
 
-					if (this.config.ssao) {
-						this.ssaoEffect.apply(this.glCore, this.gBuffer, camera, read, write, this.superSampling.frame());
-						temp = read;
-						read = write;
-						write = temp;
-					}
-
-					if (this.config.bloom) {
-						this.bloomEffect.apply(this.glCore, read, write);
-						temp = read;
-						read = write;
-						write = temp;
-					}
+					this._effects.forEach(effect => {
+						if (effect.enable) {
+							effect.apply(this, camera, read, write);
+							temp = read;
+							read = write;
+							write = temp;
+						}
+					});
 
 					camera.projectionMatrix.copy(oldProjectionMatrix);
 
@@ -110,19 +109,14 @@ class AdvancedRenderer {
 				read = this.tempRenderTarget;
 				write = this.tempRenderTarget2;
 
-				if (this.config.ssao) {
-					this.ssaoEffect.apply(this.glCore, this.gBuffer, camera, read, write, 0);
-					temp = read;
-					read = write;
-					write = temp;
-				}
-
-				if (this.config.bloom) {
-					this.bloomEffect.apply(this.glCore, read, write);
-					temp = read;
-					read = write;
-					write = temp;
-				}
+				this._effects.forEach(effect => {
+					if (effect.enable) {
+						effect.apply(this, camera, read, write);
+						temp = read;
+						read = write;
+						write = temp;
+					}
+				});
 
 				tex = read.texture;
 			}
@@ -162,7 +156,7 @@ class AdvancedRenderer {
 
 		scene.updateRenderList(camera);
 
-		if (this.config.ssao) {
+		if (this.ssaoEffect.enable) {
 			this.gBuffer.update(this.glCore, scene, camera);
 		}
 
@@ -179,7 +173,7 @@ class AdvancedRenderer {
 
 	dirty() {
 		this.superSampling.start();
-		this.bloomEffect.dirty();
+		this._effects.forEach(effect => effect.dirty());
 	}
 
 }

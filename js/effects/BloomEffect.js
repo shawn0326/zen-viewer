@@ -1,14 +1,23 @@
+import { AbstractEffect } from '../AbstractEffect.js';
 import { AdditiveBlendShader } from '../shaders/AdditiveBlendShader.js';
 
-class BloomEffect {
+class BloomEffect extends AbstractEffect {
 
 	constructor(width, height) {
+		super(width, height);
+
 		this.highLightPass = new zen3d.ShaderPostPass(zen3d.LuminosityHighPassShader);
+		this.highLightPass.material.depthTest = false;
+		this.highLightPass.material.depthWrite = false;
 
 		this.blurPass = new zen3d.BlurPass(zen3d.BlurShader);
+		this.blurPass.material.depthTest = false;
+		this.blurPass.material.depthWrite = false;
 		this.blurPass.setKernelSize(13);
 
-		this.bloomPass = new zen3d.ShaderPostPass(AdditiveBlendShader);
+		this.blendPass = new zen3d.ShaderPostPass(AdditiveBlendShader);
+		this.blendPass.material.depthTest = false;
+		this.blendPass.material.depthWrite = false;
 
 		this.threshold = 0.7;
 		this.intensity = 1;
@@ -36,38 +45,36 @@ class BloomEffect {
 		this._dirty = true;
 	}
 
-	apply(glCore, input, output) {
+	apply(renderer, camera, input, output) {
+		const glCore = renderer.glCore;
+
 		if (this._dirty) {
 			glCore.renderTarget.setRenderTarget(this.tempRenderTarget);
-			glCore.state.colorBuffer.setClear(0, 0, 0, 1);
-			glCore.clear(true, true, true);
 			this.highLightPass.uniforms.luminosityThreshold = this.threshold;
 			this.highLightPass.uniforms.tDiffuse = input.texture;
 			this.highLightPass.render(glCore);
 
 			glCore.renderTarget.setRenderTarget(this.tempRenderTarget2);
-			glCore.state.colorBuffer.setClear(0, 0, 0, 1);
-			glCore.clear(true, true, true);
 			this.blurPass.uniforms.tDiffuse = this.tempRenderTarget.texture;
 			this.blurPass.uniforms.blurSize = this.radius;
 			this.blurPass.uniforms.direction = 0;
 			this.blurPass.render(glCore);
 
 			glCore.renderTarget.setRenderTarget(this.tempRenderTarget);
-			glCore.state.colorBuffer.setClear(0, 0, 0, 1);
-			glCore.clear(true, true, true);
 			this.blurPass.uniforms.tDiffuse = this.tempRenderTarget2.texture;
 			this.blurPass.uniforms.blurSize = this.radius;
 			this.blurPass.uniforms.direction = 1;
 			this.blurPass.render(glCore);
+
+			this._dirty = false;
 		}
 
 		glCore.renderTarget.setRenderTarget(output);
 
-		this.bloomPass.uniforms.tDst = input.texture;
-		this.bloomPass.uniforms.tSrc = this.tempRenderTarget.texture;
-		this.bloomPass.uniforms.intensity = this.intensity;
-		this.bloomPass.render(glCore);
+		this.blendPass.uniforms.tDst = input.texture;
+		this.blendPass.uniforms.tSrc = this.tempRenderTarget.texture;
+		this.blendPass.uniforms.intensity = this.intensity;
+		this.blendPass.render(glCore);
 	}
 
 	dirty() {
