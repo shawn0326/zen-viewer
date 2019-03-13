@@ -99,7 +99,7 @@ class Viewer {
 			this.mixer.update(this.clock.getDelta());
 		}
 
-		this.backgroundCamera.copy(this.activeCamera);
+		this.backgroundCamera.copy(this.activeCamera, false);
 		this.renderer.render(this.backgroundScene, this.backgroundCamera, true, true);
 
 		this.renderer.render(this.scene, this.activeCamera, false);
