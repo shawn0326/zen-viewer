@@ -1,5 +1,6 @@
 import environments from '../assets/environment/index.js';
 import AdvancedRenderer from './AdvancedRenderer.js';
+import { ToneMappingTypes } from './effects/ToneMappingEffect.js';
 
 const MAP_NAMES = [
 	'diffuseMap',
@@ -427,6 +428,16 @@ class Viewer {
 		ssaoFolder.add(this.renderer.ssaoEffect.ssaoPass.uniforms, 'intensity', 0, 5, 0.1).onChange(() => this.renderer.dirty());
 		ssaoFolder.add(this.renderer.ssaoEffect.ssaoPass.uniforms, 'radius', 0.1, 30, 0.1).onChange(() => this.renderer.dirty());
 		ssaoFolder.add(this.renderer.ssaoEffect.ssaoPass.uniforms, 'bias', 0, 1, 0.01).onChange(() => this.renderer.dirty());
+		const toneMappingFolder = this.effectFolder.addFolder('tone mapping');
+		toneMappingFolder.add(this.renderer.toneMappingEffect, 'enable').onChange(() => this.renderer.dirty());
+		toneMappingFolder.add(this.renderer.toneMappingEffect, 'type', ToneMappingTypes).onChange(() => {
+			this.renderer.toneMappingEffect.updateType();
+			this.renderer.dirty()
+		});
+		toneMappingFolder.add(this.renderer.toneMappingEffect.pass.uniforms, 'exposure', 0, 1, 0.01).onChange(() => this.renderer.dirty());
+		toneMappingFolder.add(this.renderer.toneMappingEffect.pass.uniforms, 'brightness', 0, 2, 0.01).onChange(() => this.renderer.dirty());
+		toneMappingFolder.add(this.renderer.toneMappingEffect.pass.uniforms, 'contrast', 0, 2, 0.01).onChange(() => this.renderer.dirty());
+		toneMappingFolder.add(this.renderer.toneMappingEffect.pass.uniforms, 'saturation', 0, 2, 0.01).onChange(() => this.renderer.dirty());
 
 		const guiWrap = document.createElement('div');
 		this.el.appendChild(guiWrap);

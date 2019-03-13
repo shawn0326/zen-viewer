@@ -33,13 +33,13 @@ class SSAOEffect extends AbstractEffect {
 		this.blurPass = new zen3d.BlurPass(zen3d.BlurShader);
 		this.blurPass.material.depthTest = false;
 		this.blurPass.material.depthWrite = false;
-		this.blurPass.setKernelSize(13);
 		this.blurPass.material.defines["NORMALTEX_ENABLED"] = 1;
 		this.blurPass.material.defines["DEPTHTEX_ENABLED"] = 1;
 		this.blurPass.uniforms["projection"] = projection.elements;
 		this.blurPass.uniforms["viewInverseTranspose"] = viewInverseTranspose.elements;
 		this.blurPass.uniforms["blurSize"] = 2;
 		this.blurPass.uniforms["depthRange"] = 1;
+		this.blurPass.uniforms["textureSize"] = [width, height];
 
 		this.tempRenderTarget = new zen3d.RenderTarget2D(width, height);
 		this.tempRenderTarget.texture.minFilter = zen3d.WEBGL_TEXTURE_FILTER.LINEAR;
@@ -58,8 +58,8 @@ class SSAOEffect extends AbstractEffect {
 	resize(width, height) {
 		this.tempRenderTarget.resize(width, height);
 
-		this.ssaoPass.uniforms["texSize"][0] = width;
-		this.ssaoPass.uniforms["texSize"][1] = height;
+		this.ssaoPass.uniforms["texSize"] = [width, height];
+		this.blurPass.uniforms["textureSize"] = [width, height];
 
 		this._dirty = true;
 	}

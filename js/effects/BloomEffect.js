@@ -11,6 +11,7 @@ class BloomEffect extends AbstractEffect {
 		this.highLightPass.material.depthWrite = false;
 
 		this.blurPass = new zen3d.BlurPass(zen3d.BlurShader);
+		this.blurPass.uniforms["textureSize"] = [width, height];
 		this.blurPass.material.depthTest = false;
 		this.blurPass.material.depthWrite = false;
 		this.blurPass.setKernelSize(13);
@@ -40,7 +41,7 @@ class BloomEffect extends AbstractEffect {
 		this.tempRenderTarget.resize(width, height);
 		this.tempRenderTarget2.resize(width, height);
 
-		this.blurPass.uniforms.textureSize = [width, height];
+		this.blurPass.uniforms["textureSize"] = [width, height];
 
 		this._dirty = true;
 	}

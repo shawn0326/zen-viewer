@@ -1,5 +1,6 @@
 import { BloomEffect } from './effects/BloomEffect.js';
 import { SSAOEffect } from './effects/SSAOEffect.js';
+import { ToneMappingEffect } from './effects/ToneMappingEffect.js';
 
 const oldProjectionMatrix = new zen3d.Matrix4();
 
@@ -47,7 +48,10 @@ class AdvancedRenderer {
 		this.ssaoEffect = new SSAOEffect(canvas.width, canvas.height);
 		this.ssaoEffect.enable = false;
 
-		this._effects = [this.bloomEffect, this.ssaoEffect];
+		this.toneMappingEffect = new ToneMappingEffect(canvas.width, canvas.height);
+		this.toneMappingEffect.enable = false;
+
+		this._effects = [this.bloomEffect, this.ssaoEffect, this.toneMappingEffect];
 
 		this.config = { taa: true, fxaa: false };
 	}
