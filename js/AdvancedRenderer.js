@@ -51,7 +51,7 @@ class AdvancedRenderer {
 		this.toneMappingEffect = new ToneMappingEffect(canvas.width, canvas.height);
 		this.toneMappingEffect.enable = false;
 
-		this._effects = [this.bloomEffect, this.ssaoEffect, this.toneMappingEffect];
+		this._effects = [this.ssaoEffect, this.bloomEffect, this.toneMappingEffect];
 
 		this.config = { taa: true, fxaa: false };
 	}
