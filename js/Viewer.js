@@ -438,6 +438,10 @@ class Viewer {
 		toneMappingFolder.add(this.renderer.toneMappingEffect.pass.uniforms, 'brightness', 0, 2, 0.01).onChange(() => this.renderer.dirty());
 		toneMappingFolder.add(this.renderer.toneMappingEffect.pass.uniforms, 'contrast', 0, 2, 0.01).onChange(() => this.renderer.dirty());
 		toneMappingFolder.add(this.renderer.toneMappingEffect.pass.uniforms, 'saturation', 0, 2, 0.01).onChange(() => this.renderer.dirty());
+		const vignetteFolder = this.effectFolder.addFolder('vignette');
+		vignetteFolder.add(this.renderer.vignetteEffect, 'enable').onChange(() => this.renderer.dirty());
+		vignetteFolder.add(this.renderer.vignetteEffect.pass.uniforms, 'vignetteOffset', 0, 3, 0.01).onChange(() => this.renderer.dirty());
+		vignetteFolder.add(this.renderer.vignetteEffect.pass.uniforms, 'vignetteDarkness', 0, 2, 0.01).onChange(() => this.renderer.dirty());
 
 		const guiWrap = document.createElement('div');
 		this.el.appendChild(guiWrap);

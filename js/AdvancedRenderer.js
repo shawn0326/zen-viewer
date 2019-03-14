@@ -1,6 +1,7 @@
 import { BloomEffect } from './effects/BloomEffect.js';
 import { SSAOEffect } from './effects/SSAOEffect.js';
 import { ToneMappingEffect } from './effects/ToneMappingEffect.js';
+import { VignetteEffect } from './effects/VignetteEffect.js';
 
 const oldProjectionMatrix = new zen3d.Matrix4();
 
@@ -51,7 +52,10 @@ class AdvancedRenderer {
 		this.toneMappingEffect = new ToneMappingEffect(canvas.width, canvas.height);
 		this.toneMappingEffect.enable = false;
 
-		this._effects = [this.bloomEffect, this.ssaoEffect, this.toneMappingEffect];
+		this.vignetteEffect = new VignetteEffect(canvas.width, canvas.height);
+		this.vignetteEffect.enable = false;
+
+		this._effects = [this.bloomEffect, this.ssaoEffect, this.toneMappingEffect, this.vignetteEffect];
 
 		this.config = { taa: true, fxaa: false };
 	}
@@ -67,8 +71,7 @@ class AdvancedRenderer {
 
 		this.superSampling.resize(width, height);
 
-		this.bloomEffect.resize(width, height);
-		this.ssaoEffect.resize(width, height);
+		this._effects.forEach(effect => effect.resize(width, height));
 
 		this.fxaaPass.uniforms["resolution"] = [1 / width, 1 / height];
 
