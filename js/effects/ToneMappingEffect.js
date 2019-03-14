@@ -9,7 +9,6 @@ class ToneMappingEffect extends AbstractEffect {
 		this.type = "Linear";
 
 		this.pass = new zen3d.ShaderPostPass(ToneMappingShader);
-		this.pass.material.transparent = true;
 		this.pass.material.depthTest = false;
 		this.pass.material.depthWrite = false;
 	}

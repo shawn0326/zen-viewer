@@ -43,11 +43,11 @@ class AdvancedRenderer {
 
 		this.superSampling = new zen3d.SuperSampling(canvas.width, canvas.height, 30);
 
-		this.bloomEffect = new BloomEffect(canvas.width, canvas.height);
-		this.bloomEffect.enable = false;
-
 		this.ssaoEffect = new SSAOEffect(canvas.width, canvas.height);
 		this.ssaoEffect.enable = false;
+
+		this.bloomEffect = new BloomEffect(canvas.width, canvas.height);
+		this.bloomEffect.enable = false;
 
 		this.toneMappingEffect = new ToneMappingEffect(canvas.width, canvas.height);
 		this.toneMappingEffect.enable = false;
@@ -55,7 +55,7 @@ class AdvancedRenderer {
 		this.vignetteEffect = new VignetteEffect(canvas.width, canvas.height);
 		this.vignetteEffect.enable = false;
 
-		this._effects = [this.bloomEffect, this.ssaoEffect, this.toneMappingEffect, this.vignetteEffect];
+		this._effects = [this.ssaoEffect, this.bloomEffect, this.toneMappingEffect, this.vignetteEffect];
 
 		this.config = { taa: true, fxaa: false };
 	}
