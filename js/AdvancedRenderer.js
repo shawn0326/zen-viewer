@@ -58,6 +58,43 @@ class AdvancedRenderer {
 		this._effects = [this.ssaoEffect, this.bloomEffect, this.toneMappingEffect, this.vignetteEffect];
 
 		this.config = { taa: true, fxaa: false };
+
+		// Background
+
+		this.backgroundColor = new zen3d.Color3();
+
+		this.backgroundScene = new zen3d.Scene();
+		this.backgroundCamera = new zen3d.Camera();
+		this.backgroundScene.add(this.backgroundCamera);
+
+		this.skyBox = new zen3d.SkyBox(null);
+		this.skyBox.level = 4;
+		this.skyBox.visible = false;
+		this.backgroundCamera.add(this.skyBox);
+	}
+
+	setBackground(val) {
+		this.clearBackground();
+
+		if (val instanceof zen3d.Color3) {
+			this.backgroundColor.copy(val);
+		} else if (val instanceof zen3d.TextureCube) {
+			this.skyBox.material.cubeMap = val;
+			this.skyBox.visible = true;
+		} else if (val instanceof zen3d.Texture2D) {
+			console.warn("Texture2D background is not supported yet!")
+		} else {
+			console.warn("unsupport background!")
+		}
+
+		this.dirty();
+	}
+
+	clearBackground() {
+		this.backgroundColor.setRGB(0, 0, 0);
+		this.skyBox.visible = false;
+
+		this.dirty();
 	}
 
 	resize(width, height) {
@@ -78,11 +115,23 @@ class AdvancedRenderer {
 		this.dirty();
 	}
 
-	render(scene, camera, clear, forceSimple) {
-		clear = clear !== undefined ? clear : true;
-		forceSimple = forceSimple !== undefined ? forceSimple : false;
+	_renderBackground(camera) {
+		this.backgroundCamera.copy(camera, false);
 
-		if (this.glCore.capabilities.version >= 2 && !forceSimple) {
+		this.backgroundScene.updateMatrix();
+
+		this.glCore.renderTarget.setRenderTarget(this.backRenderTarget);
+
+		this.glCore.state.colorBuffer.setClear(this.backgroundColor.r, this.backgroundColor.g, this.backgroundColor.b, 1);
+		this.glCore.clear(true, true, true);
+
+		this.glCore.render(this.backgroundScene, this.backgroundCamera);
+	}
+
+	render(scene, camera) {
+		this._renderBackground(camera);
+
+		if (this.glCore.capabilities.version >= 2) {
 			let tex, read, write, temp;
 
 			if (this.config.taa) {
@@ -130,11 +179,6 @@ class AdvancedRenderer {
 
 			this.glCore.renderTarget.setRenderTarget(this.backRenderTarget);
 
-			if (clear) {
-				this.glCore.state.colorBuffer.setClear(0, 0, 0, 0);
-				this.glCore.clear(true, true, true);
-			}
-
 			if (this.config.fxaa) {
 				this.fxaaPass.uniforms.tDiffuse = tex;
 				this.fxaaPass.render(this.glCore);
@@ -147,11 +191,6 @@ class AdvancedRenderer {
 			scene.updateLights();
 
 			this.glCore.renderTarget.setRenderTarget(this.backRenderTarget);
-
-			if (clear) {
-				this.glCore.state.colorBuffer.setClear(0.8, 0.8, 0.8, 1);
-				this.glCore.clear(true, true, true);
-			}
 
 			this.glCore.render(scene, camera);
 		}

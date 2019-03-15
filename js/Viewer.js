@@ -47,6 +47,7 @@ class Viewer {
 		this.el.appendChild(canvas);
 
 		this.renderer = new AdvancedRenderer(canvas);
+		this.renderer.setBackground(new zen3d.Color3(0.8, 0.8, 0.8));
 
 		this.scene = new zen3d.Scene();
 
@@ -60,15 +61,6 @@ class Viewer {
 		this.activeCamera = this.defaultCamera;
 
 		this.controls = new zen3d.OrbitControls(this.defaultCamera, canvas);
-
-		this.backgroundScene = new zen3d.Scene();
-		this.backgroundCamera = new zen3d.Camera();
-		this.backgroundScene.add(this.backgroundCamera);
-
-		this.skyBox = new zen3d.SkyBox(null);
-		this.skyBox.level = 4;
-		this.skyBox.visible = false;
-		this.backgroundCamera.add(this.skyBox);
 
 		this.clock = new zen3d.Clock();
 
@@ -99,10 +91,7 @@ class Viewer {
 			this.mixer.update(this.clock.getDelta());
 		}
 
-		this.backgroundCamera.copy(this.activeCamera, false);
-		this.renderer.render(this.backgroundScene, this.backgroundCamera, true, true);
-
-		this.renderer.render(this.scene, this.activeCamera, false);
+		this.renderer.render(this.scene, this.activeCamera);
 	}
 
 	resize() {
@@ -200,8 +189,11 @@ class Viewer {
 		const environment = environments.find(entry => entry.name === this.state.environment);
 
 		this.getCubeMapTexture(environment).then(texture => {
-			this.skyBox.material.cubeMap = texture;
-			this.skyBox.visible = !!texture && this.state.background;
+			if (!!texture && this.state.background) {
+				this.renderer.setBackground(texture);
+			} else {
+				this.renderer.setBackground(new zen3d.Color3(0.8, 0.8, 0.8));
+			}
 
 			traverseMaterials(this.content, material => {
 				if (material.hasOwnProperty('envMap')) {
@@ -381,7 +373,7 @@ class Viewer {
 		const dispFolder = gui.addFolder('Display');
 		const envBackgroundCtrl = dispFolder.add(this.state, 'background');
 		envBackgroundCtrl.onChange(() => this.updateEnvironment());
-		dispFolder.add(this.skyBox, 'level', 0, 8, 1).name('backgroundLOD');
+		dispFolder.add(this.renderer.skyBox, 'level', 0, 8, 1).name('backgroundLOD');
 		const skeletonCtrl = dispFolder.add(this.state, 'skeleton');
 		skeletonCtrl.onChange(() => this.updateDisplay());
 		const gridCtrl = dispFolder.add(this.state, 'grid');
