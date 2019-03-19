@@ -2,6 +2,7 @@ import { BloomEffect } from './effects/BloomEffect.js';
 import { SSAOEffect } from './effects/SSAOEffect.js';
 import { ToneMappingEffect } from './effects/ToneMappingEffect.js';
 import { VignetteEffect } from './effects/VignetteEffect.js';
+import { BackgroundEffect } from './effects/BackgroundEffect.js';
 
 const oldProjectionMatrix = new zen3d.Matrix4();
 
@@ -52,48 +53,23 @@ class AdvancedRenderer {
 		this.toneMappingEffect = new ToneMappingEffect(canvas.width, canvas.height);
 		this.toneMappingEffect.enable = false;
 
+		this.backgroundEffect = new BackgroundEffect(canvas.width, canvas.height);
+
 		this.vignetteEffect = new VignetteEffect(canvas.width, canvas.height);
 		this.vignetteEffect.enable = false;
 
-		this._effects = [this.ssaoEffect, this.bloomEffect, this.toneMappingEffect, this.vignetteEffect];
+		this._effects = [this.ssaoEffect, this.bloomEffect, this.toneMappingEffect, this.backgroundEffect, this.vignetteEffect];
 
 		this.config = { taa: true, fxaa: false };
-
-		// Background
-
-		this.backgroundColor = new zen3d.Color3();
-
-		this.backgroundScene = new zen3d.Scene();
-		this.backgroundCamera = new zen3d.Camera();
-		this.backgroundScene.add(this.backgroundCamera);
-
-		this.skyBox = new zen3d.SkyBox(null);
-		this.skyBox.level = 4;
-		this.skyBox.visible = false;
-		this.backgroundCamera.add(this.skyBox);
 	}
 
 	setBackground(val) {
-		this.clearBackground();
-
-		if (val instanceof zen3d.Color3) {
-			this.backgroundColor.copy(val);
-		} else if (val instanceof zen3d.TextureCube) {
-			this.skyBox.material.cubeMap = val;
-			this.skyBox.visible = true;
-		} else if (val instanceof zen3d.Texture2D) {
-			console.warn("Texture2D background is not supported yet!")
-		} else {
-			console.warn("unsupport background!")
-		}
-
+		this.backgroundEffect.set(val);
 		this.dirty();
 	}
 
 	clearBackground() {
-		this.backgroundColor.setRGB(0, 0, 0);
-		this.skyBox.visible = false;
-
+		this.backgroundColor.clear();
 		this.dirty();
 	}
 
@@ -115,22 +91,7 @@ class AdvancedRenderer {
 		this.dirty();
 	}
 
-	_renderBackground(camera) {
-		this.backgroundCamera.copy(camera, false);
-
-		this.backgroundScene.updateMatrix();
-
-		this.glCore.renderTarget.setRenderTarget(this.backRenderTarget);
-
-		this.glCore.state.colorBuffer.setClear(this.backgroundColor.r, this.backgroundColor.g, this.backgroundColor.b, 1);
-		this.glCore.clear(true, true, true);
-
-		this.glCore.render(this.backgroundScene, this.backgroundCamera);
-	}
-
 	render(scene, camera) {
-		this._renderBackground(camera);
-
 		if (this.glCore.capabilities.version >= 2) {
 			let tex, read, write, temp;
 
@@ -190,7 +151,7 @@ class AdvancedRenderer {
 			scene.updateMatrix();
 			scene.updateLights();
 
-			this.glCore.renderTarget.setRenderTarget(this.backRenderTarget);
+			this.backgroundEffect.apply(this, camera, undefined, this.backRenderTarget);
 
 			this.glCore.render(scene, camera);
 		}

@@ -373,7 +373,7 @@ class Viewer {
 		const dispFolder = gui.addFolder('Display');
 		const envBackgroundCtrl = dispFolder.add(this.state, 'background');
 		envBackgroundCtrl.onChange(() => this.updateEnvironment());
-		dispFolder.add(this.renderer.skyBox, 'level', 0, 8, 1).name('backgroundLOD');
+		dispFolder.add(this.renderer.backgroundEffect.skyBox, 'level', 0, 8, 1).name('backgroundLOD').onChange(() => this.updateDisplay());
 		const skeletonCtrl = dispFolder.add(this.state, 'skeleton');
 		skeletonCtrl.onChange(() => this.updateDisplay());
 		const gridCtrl = dispFolder.add(this.state, 'grid');
