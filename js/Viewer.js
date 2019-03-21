@@ -219,7 +219,6 @@ class Viewer {
 		];
 
 		const texture = zen3d.TextureCube.fromSrc(cubeMapURLs);
-		texture.format = zen3d.WEBGL_PIXEL_FORMAT.RGB;
 
 		return new Promise(resolve => {
 			texture.addEventListener('onload', () => {

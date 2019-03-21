@@ -9,11 +9,13 @@ export class BackgroundEffect extends AbstractEffect {
 
 		this.backgroundScene = new zen3d.Scene();
 		this.backgroundCamera = new zen3d.Camera();
+		this.backgroundCamera.gammaOutput = true;
 		this.backgroundScene.add(this.backgroundCamera);
 
 		this.skyBox = new zen3d.SkyBox(null);
 		this.skyBox.level = 4;
 		this.skyBox.visible = false;
+		this.skyBox.gamma = true;
 		this.backgroundCamera.add(this.skyBox);
 
 		this.copyPass = new zen3d.ShaderPostPass(zen3d.CopyShader);
@@ -26,7 +28,7 @@ export class BackgroundEffect extends AbstractEffect {
 		if (val instanceof zen3d.Color3) {
 			this.backgroundColor.copy(val);
 		} else if (val instanceof zen3d.TextureCube) {
-			this.skyBox.material.cubeMap = val;
+			this.skyBox.texture = val;
 			this.skyBox.visible = true;
 		} else if (val instanceof zen3d.Texture2D) {
 			console.warn("Texture2D background is not supported yet!")
