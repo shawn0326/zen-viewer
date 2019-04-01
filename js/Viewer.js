@@ -1,6 +1,7 @@
 import environments from '../assets/environment/index.js';
 import AdvancedRenderer from './AdvancedRenderer.js';
 import { ToneMappingTypes } from './effects/ToneMappingEffect.js';
+import { GroundShader } from './shaders/GroundShader.js';
 
 const MAP_NAMES = [
 	'diffuseMap',
@@ -29,6 +30,7 @@ class Viewer {
 			actionStates: [],
 			camera: DEFAULT_CAMERA,
 			skeleton: false,
+			ground: false,
 			grid: false,
 			addLights: true,
 			textureEncoding: 'sRGB',
@@ -64,6 +66,7 @@ class Viewer {
 
 		this.clock = new zen3d.Clock();
 
+		this.size = new zen3d.Vector3();
 		this.mixer = null;
 		this.clips = [];
 
@@ -72,7 +75,7 @@ class Viewer {
 		this.animFolder = null;
 		this.animCtrls = [];
 		this.skeletonHelpers = [];
-		this.gridHelper = null;
+		this.ground = null;
 
 		this.addGUI();
 
@@ -145,7 +148,8 @@ class Viewer {
 
 		const box = getBoundingBox(object);
 		const center = box.getCenter(new zen3d.Vector3());
-		const size = new zen3d.Vector3().subVectors(box.max, box.min).getLength();
+		this.size.subVectors(box.max, box.min);
+		const size = this.size.getLength();
 
 		object.position.x += (object.position.x - center.x);
 		object.position.y += (object.position.y - center.y);
@@ -352,14 +356,39 @@ class Viewer {
 			}
 		});
 
-		if (this.state.grid !== Boolean(this.gridHelper)) {
-			if (this.state.grid) {
-				this.gridHelper = new zen3d.GridHelper();
-				this.scene.add(this.gridHelper);
+		if (this.state.ground !== Boolean(this.ground)) {
+			if (this.state.ground) {
+				const material = new zen3d.ShaderMaterial(GroundShader);
+				material.transparent = true;
+				material.blending = zen3d.BLEND_TYPE.CUSTOM;
+				material.blendSrc = zen3d.BLEND_FACTOR.ONE;
+				material.blendDst = zen3d.BLEND_FACTOR.ZERO;
+				material.blendSrcAlpha = zen3d.BLEND_FACTOR.ONE;
+				material.blendDstAlpha = zen3d.BLEND_FACTOR.ZERO;
+				material.polygonOffset = true;
+				material.polygonOffsetFactor = 1
+				material.polygonOffsetUnits = 1;
+				this.ground = new zen3d.Mesh(
+					new zen3d.PlaneGeometry(1, 1),
+					material
+				);
+				this.ground.renderOrder = -1;
+				this.scene.add(this.ground);
 			} else {
-				this.scene.remove(this.gridHelper);
-				this.gridHelper = null;
+				this.scene.remove(this.ground);
+				this.ground = null;
 			}
+		}
+
+		if (this.ground) {
+			this.ground.material.uniforms.showGrid = this.state.grid;
+
+			this.ground.position.y = -Math.abs(this.size.y / 2);
+
+			let size = Math.abs(Math.max(this.size.x, this.size.z) * 2);
+			size = Math.max(30, size);
+			this.ground.material.uniforms.size = size / 2;
+			this.ground.scale.set(size, 1, size);
 		}
 
 		this.renderer.dirty();
@@ -375,6 +404,8 @@ class Viewer {
 		dispFolder.add(this.renderer.backgroundEffect.skyBox, 'level', 0, 8, 1).name('backgroundLOD').onChange(() => this.updateDisplay());
 		const skeletonCtrl = dispFolder.add(this.state, 'skeleton');
 		skeletonCtrl.onChange(() => this.updateDisplay());
+		const groundCtrl = dispFolder.add(this.state, 'ground');
+		groundCtrl.onChange(() => this.updateDisplay());
 		const gridCtrl = dispFolder.add(this.state, 'grid');
 		gridCtrl.onChange(() => this.updateDisplay());
 		dispFolder.add(this.controls, 'autoRotate');
