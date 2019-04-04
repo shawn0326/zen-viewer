@@ -13,7 +13,7 @@ export class BackgroundEffect extends AbstractEffect {
 		this.backgroundScene.add(this.backgroundCamera);
 
 		this.skyBox = new zen3d.SkyBox(null);
-		this.skyBox.level = 4;
+		this.skyBox.level = 8;
 		this.skyBox.visible = false;
 		this.skyBox.gamma = true;
 		this.backgroundCamera.add(this.skyBox);

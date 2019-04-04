@@ -25,8 +25,8 @@ class Viewer {
 		this.lights = [];
 
 		this.state = {
-			environment: environments[1].name,
-			background: false,
+			environment: environments[3].name,
+			background: true,
 			actionStates: [],
 			camera: DEFAULT_CAMERA,
 			skeleton: false,
@@ -34,7 +34,7 @@ class Viewer {
 			grid: false,
 			addLights: true,
 			textureEncoding: 'sRGB',
-			ambientIntensity: 0.3,
+			ambientIntensity: 0.0,
 			ambientColor: 0xFFFFFF,
 			directIntensity: 0.8 * Math.PI, // TODO(#116)
 			directColor: 0xFFFFFF
@@ -193,7 +193,15 @@ class Viewer {
 		const environment = environments.find(entry => entry.name === this.state.environment);
 
 		this.getCubeMapTexture(environment).then(texture => {
-			if (!!texture && this.state.background) {
+			if (texture) {
+				texture = zen3d.PMREM.prefilterEnvironmentMap(this.renderer.glCore, texture, {
+					width: texture.images[0].width,
+					height: texture.images[0].height,
+					sampleSize: 256
+				});
+			}
+
+			if (texture && this.state.background) {
 				this.renderer.setBackground(texture);
 			} else {
 				this.renderer.setBackground(new zen3d.Color3(0.8, 0.8, 0.8));
