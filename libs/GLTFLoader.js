@@ -144,9 +144,7 @@
 			}
 
 			if (json.extensionsUsed.indexOf(EXTENSIONS.KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS) >= 0) {
-				// TODO
-				console.warn('GLTFLoader:: KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS not currently supported.');
-				// extensions[EXTENSIONS.KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS] = new GLTFMaterialsPbrSpecularGlossinessExtension();
+				extensions[EXTENSIONS.KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS] = new GLTFMaterialsPbrSpecularGlossinessExtension();
 			}
 
 			if (json.extensionsUsed.indexOf(EXTENSIONS.KHR_DRACO_MESH_COMPRESSION) >= 0) {
@@ -492,32 +490,6 @@
 
 				node = mesh.clone();
 
-				// TODO isGLTFSpecularGlossinessMaterial support
-				// for Specular-Glossiness
-				// if ( mesh.type === zen3d.OBJECT_TYPE.GROUP ) {
-				//
-				// 	for ( var i = 0, il = mesh.children.length; i < il; i ++ ) {
-				//
-				// 		var child = mesh.children[ i ];
-				//
-				// 		if ( child.material && child.material.isGLTFSpecularGlossinessMaterial === true ) {
-				//
-				// 			node.children[ i ].onBeforeRender = child.onBeforeRender;
-				//
-				// 		}
-				//
-				// 	}
-				//
-				// } else {
-				//
-				// 	if ( mesh.material && mesh.material.isGLTFSpecularGlossinessMaterial === true ) {
-				//
-				// 		node.onBeforeRender = mesh.onBeforeRender;
-				//
-				// 	}
-				//
-				// }
-
 				if (meshReferences[nodeDef.mesh] > 1) {
 					node.name += '_instance_' + meshUses[nodeDef.mesh]++;
 				}
@@ -706,7 +678,7 @@
 		var json = this.json;
 		var extensions = this.extensions;
 
-		var meshDef = this.json.meshes[meshIndex];
+		var meshDef = json.meshes[meshIndex];
 
 		return this.getMultiDependencies([
 
@@ -745,14 +717,7 @@
 					var useMorphTargets = false;
 
 					if (useVertexColors || useFlatShading || useSkinning || useMorphTargets) {
-						if (material.isGLTFSpecularGlossinessMaterial) {
-							// TODO isGLTFSpecularGlossinessMaterial support
-							console.warn("GLTFLoader: GLTFSpecularGlossinessMaterial not support");
-							// var specGlossExtension = extensions[ EXTENSIONS.KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS ];
-							// material = specGlossExtension.cloneMaterial( material );
-						} else {
-							material = material.clone();
-						}
+						material = material.clone();
 					}
 
 					if (useVertexColors) {
@@ -844,14 +809,6 @@
 
 					if (meshDef.extras !== undefined) mesh.userData = meshDef.extras;
 					if (primitive.extras !== undefined) mesh.geometry.userData = primitive.extras;
-
-					// TODO isGLTFSpecularGlossinessMaterial support
-					// for Specular-Glossiness.
-					// if ( material.isGLTFSpecularGlossinessMaterial === true ) {
-					//
-					// 	mesh.onBeforeRender = extensions[ EXTENSIONS.KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS ].refreshUniforms;
-					//
-					// }
 
 					if (primitives.length > 1) {
 						mesh.name += '_' + i;
@@ -1153,28 +1110,22 @@
 		var parser = this;
 		var json = this.json;
 		var extensions = this.extensions;
-		var materialDef = this.json.materials[materialIndex];
+		var materialDef = json.materials[materialIndex];
 
 		var materialType;
 		var materialParams = {};
 		var materialExtensions = materialDef.extensions || {};
 
-		var textureExtensions = {};
-		var textureExtensionsSupports = { "baseColorTexture": "diffuseMap", "emissiveTexture": "emissiveMap" };
-
 		var pending = [];
 
 		if (materialExtensions[EXTENSIONS.KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS]) {
-
-			// TODO KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS
-			// var sgExtension = extensions[ EXTENSIONS.KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS ];
-			// materialType = sgExtension.getMaterialType( materialDef );
-			// pending.push( sgExtension.extendParams( materialParams, materialDef, parser ) );
-
+			var sgExtension = extensions[EXTENSIONS.KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS];
+			materialType = sgExtension.getMaterialType(materialDef);
+			pending.push(sgExtension.extendParams(materialParams, materialDef, parser));
 		} else if (materialExtensions[EXTENSIONS.KHR_MATERIALS_UNLIT]) {
 			var kmuExtension = extensions[EXTENSIONS.KHR_MATERIALS_UNLIT];
 			materialType = kmuExtension.getMaterialType(materialDef);
-			pending.push(kmuExtension.extendParams(materialParams, materialDef, parser, textureExtensions));
+			pending.push(kmuExtension.extendParams(materialParams, materialDef, parser));
 		} else if (materialDef.pbrMetallicRoughness !== undefined) {
 			// Specification:
 			// https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#metallic-roughness-material
@@ -1194,11 +1145,7 @@
 			}
 
 			if (metallicRoughness.baseColorTexture !== undefined) {
-				pending.push(parser.assignTexture(materialParams, 'diffuseMap', metallicRoughness.baseColorTexture.index));
-
-				if (metallicRoughness.baseColorTexture.extensions) {
-					textureExtensions["baseColorTexture"] = metallicRoughness.baseColorTexture.extensions;
-				}
+				pending.push(parser.assignTexture(materialParams, 'diffuseMap', metallicRoughness.baseColorTexture));
 			}
 
 			materialParams.metalness = metallicRoughness.metallicFactor !== undefined ? metallicRoughness.metallicFactor : 1.0;
@@ -1206,9 +1153,8 @@
 
 			// metalnessMap and roughnessMap support
 			if (metallicRoughness.metallicRoughnessTexture !== undefined) {
-				var textureIndex = metallicRoughness.metallicRoughnessTexture.index;
-				pending.push(parser.assignTexture(materialParams, 'metalnessMap', textureIndex));
-				pending.push(parser.assignTexture(materialParams, 'roughnessMap', textureIndex));
+				pending.push(parser.assignTexture(materialParams, 'metalnessMap', metallicRoughness.metallicRoughnessTexture));
+				pending.push(parser.assignTexture(materialParams, 'roughnessMap', metallicRoughness.metallicRoughnessTexture));
 			}
 		} else {
 			materialType = zen3d.PhongMaterial;
@@ -1232,7 +1178,7 @@
 		}
 
 		if (materialDef.normalTexture !== undefined) {
-			pending.push(parser.assignTexture(materialParams, 'normalMap', materialDef.normalTexture.index));
+			pending.push(parser.assignTexture(materialParams, 'normalMap', materialDef.normalTexture));
 
 			// TODO normalScale support
 			// materialParams.normalScale = new THREE.Vector2( 1, 1 );
@@ -1245,11 +1191,11 @@
 		}
 
 		if (materialDef.occlusionTexture !== undefined) {
-        	pending.push(parser.assignTexture(materialParams, 'aoMap', materialDef.occlusionTexture.index));
+			pending.push(parser.assignTexture(materialParams, 'aoMap', materialDef.occlusionTexture));
 
-        	if (materialDef.occlusionTexture.strength !== undefined) {
-        		materialParams.aoMapIntensity = materialDef.occlusionTexture.strength;
-        	}
+			if (materialDef.occlusionTexture.strength !== undefined) {
+				materialParams.aoMapIntensity = materialDef.occlusionTexture.strength;
+			}
 		}
 
 		if (materialDef.emissiveFactor !== undefined) {
@@ -1257,24 +1203,11 @@
 		}
 
 		if (materialDef.emissiveTexture !== undefined) {
-			pending.push(parser.assignTexture(materialParams, 'emissiveMap', materialDef.emissiveTexture.index));
-
-			if (materialDef.emissiveTexture.extensions) {
-				textureExtensions["emissiveTexture"] = materialDef.emissiveTexture.extensions;
-			}
+			pending.push(parser.assignTexture(materialParams, 'emissiveMap', materialDef.emissiveTexture));
 		}
 
 		return Promise.all(pending).then(function() {
-			var material;
-
-			if (materialType === zen3d.ShaderMaterial) {
-
-				// TODO support shaderMaterial
-				// material = extensions[ EXTENSIONS.KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS ].createMaterial( materialParams );
-
-			} else {
-				material = new materialType();
-			}
+			var material = new materialType();
 
 			for (var key in materialParams) {
 				material[key] = materialParams[key];
@@ -1297,29 +1230,6 @@
 
 			if (materialDef.extras) material.userData = materialDef.extras;
 
-			// texture extensions
-			for (var key in textureExtensionsSupports) {
-				if (textureExtensions[key]) {
-					var map = material[textureExtensionsSupports[key]].clone();
-
-					// KHR_TEXTURE_TRANSFORM
-					var extDef = textureExtensions[key][EXTENSIONS.KHR_TEXTURE_TRANSFORM];
-					if (extDef) {
-						if (extDef.offset) {
-							map.offset.set(extDef.offset[0], extDef.offset[1]);
-						}
-						if (extDef.rotation) {
-							map.rotation = extDef.rotation;
-						}
-						if (extDef.scale) {
-							map.repeat.set(extDef.scale[0], extDef.scale[1]);
-						}
-					}
-
-					material[textureExtensionsSupports[key]] = map;
-				}
-			}
-
 			return material;
 		});
 	};
@@ -1328,11 +1238,19 @@
      * Asynchronously assigns a texture to the given material parameters.
      * @param {Object} materialParams
      * @param {string} textureName
-     * @param {number} textureIndex
+     * @param {Object} mapDef
      * @return {Promise}
      */
-	GLTFParser.prototype.assignTexture = function(materialParams, textureName, textureIndex) {
-		return this.getDependency('texture', textureIndex).then(function(texture) {
+	GLTFParser.prototype.assignTexture = function(materialParams, textureName, mapDef) {
+		var parser = this;
+		return this.getDependency('texture', mapDef.index).then(function(texture) {
+			if (parser.extensions[EXTENSIONS.KHR_TEXTURE_TRANSFORM]) {
+				var transform = mapDef.extensions !== undefined ? mapDef.extensions[EXTENSIONS.KHR_TEXTURE_TRANSFORM] : undefined;
+
+				if (transform) {
+					texture = parser.extensions[EXTENSIONS.KHR_TEXTURE_TRANSFORM].extendTexture(texture, transform);
+				}
+			}
 			materialParams[textureName] = texture;
 		});
 	};
@@ -1426,7 +1344,7 @@
 		return zen3d.BasicMaterial;
 	};
 
-	GLTFMaterialsUnlitExtension.prototype.extendParams = function (materialParams, material, parser, textureExtensions) {
+	GLTFMaterialsUnlitExtension.prototype.extendParams = function (materialParams, material, parser) {
 		var pending = [];
 
 		materialParams.diffuse = new zen3d.Color3(1.0, 1.0, 1.0);
@@ -1443,12 +1361,56 @@
 			}
 
 			if (metallicRoughness.baseColorTexture !== undefined) {
-				pending.push(parser.assignTexture(materialParams, 'diffuseMap', metallicRoughness.baseColorTexture.index));
-
-				if (metallicRoughness.baseColorTexture.extensions) {
-					textureExtensions["baseColorTexture"] = metallicRoughness.baseColorTexture.extensions;
-				}
+				pending.push(parser.assignTexture(materialParams, 'diffuseMap', metallicRoughness.baseColorTexture));
 			}
+		}
+
+		return Promise.all(pending);
+	};
+
+	/**
+	 * GLTFMaterialsPbrSpecularGlossinessExtension
+	 */
+	function GLTFMaterialsPbrSpecularGlossinessExtension() {
+		this.name = EXTENSIONS.KHR_MATERIALS_PBR_SPECULAR_GLOSSINESS;
+	}
+
+	GLTFMaterialsPbrSpecularGlossinessExtension.prototype.getMaterialType = function (material) {
+		return zen3d.PBR2Material;
+	};
+
+	GLTFMaterialsPbrSpecularGlossinessExtension.prototype.extendParams = function (materialParams, material, parser) {
+		var pending = [];
+
+		materialParams.diffuse = new zen3d.Color3(1.0, 1.0, 1.0);
+		materialParams.opacity = 1.0;
+
+		var pbrSpecularGlossiness = material.extensions[this.name];
+
+		if (pbrSpecularGlossiness) {
+			if (Array.isArray(pbrSpecularGlossiness.diffuseFactor)) {
+				var array = pbrSpecularGlossiness.diffuseFactor;
+
+				materialParams.diffuse.fromArray(array);
+				materialParams.opacity = array[3];
+			}
+
+			if (pbrSpecularGlossiness.diffuseTexture !== undefined) {
+				pending.push(parser.assignTexture(materialParams, 'diffuseMap', pbrSpecularGlossiness.diffuseTexture));
+			}
+		}
+
+		materialParams.glossiness = pbrSpecularGlossiness.glossinessFactor !== undefined ? pbrSpecularGlossiness.glossinessFactor : 1.0;
+		materialParams.specular = new zen3d.Color3(1.0, 1.0, 1.0);
+
+		if (Array.isArray(pbrSpecularGlossiness.specularFactor)) {
+			materialParams.specular.fromArray(pbrSpecularGlossiness.specularFactor);
+		}
+
+		if (pbrSpecularGlossiness.specularGlossinessTexture !== undefined) {
+			var specGlossMapDef = pbrSpecularGlossiness.specularGlossinessTexture;
+			pending.push(parser.assignTexture(materialParams, 'glossinessMap', specGlossMapDef));
+			pending.push(parser.assignTexture(materialParams, 'specularMap', specGlossMapDef));
 		}
 
 		return Promise.all(pending);
@@ -1634,6 +1596,28 @@
      */
 	function GLTFTextureTransformExtension() {
 		this.name = EXTENSIONS.KHR_TEXTURE_TRANSFORM;
+	}
+
+	GLTFTextureTransformExtension.prototype.extendTexture = function (texture, transform) {
+		texture = texture.clone();
+
+		if (transform.offset !== undefined) {
+			texture.offset.fromArray(transform.offset);
+		}
+
+		if (transform.rotation !== undefined) {
+			texture.rotation = transform.rotation;
+		}
+
+		if (transform.scale !== undefined) {
+			texture.repeat.fromArray(transform.scale);
+		}
+
+		if (transform.texCoord !== undefined) {
+			console.warn('THREE.GLTFLoader: Custom UV sets in "' + this.name + '" extension not yet supported.');
+		}
+
+		return texture;
 	}
 
 	/*********************************/
