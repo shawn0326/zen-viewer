@@ -9,7 +9,13 @@ You can get some test models from [sketchfab](sketchfab.com) or [glTF-Sample-Mod
 
 [Online Zen Viewer](https://shawn0326.github.io/zen-viewer/)
 
-![](./assets/screenshot.png)
+<a href="https://shawn0326.github.io/zen-viewer/">
+    <img src="./assets/screenshot.png" width="600px" />
+</a>
+
+<a href="https://shawn0326.github.io/zen-viewer/">
+    <img src="./assets/screenshot2.png" width="600px" />
+</a>
 
 ### About Me ###
 
