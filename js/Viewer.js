@@ -63,6 +63,7 @@ class Viewer {
 		this.activeCamera = this.defaultCamera;
 
 		this.controls = new zen3d.OrbitControls(this.defaultCamera, canvas);
+		this.controls.screenSpacePanning = true;
 
 		this.clock = new zen3d.Clock();
 
@@ -397,6 +398,9 @@ class Viewer {
 			size = Math.max(30, size);
 			this.ground.material.uniforms.size = size / 2;
 			this.ground.scale.set(size, 1, size);
+
+			this.ground.material.uniforms.gridSize = size / 10;
+			this.ground.material.uniforms.gridSize2 = size / 50;
 		}
 
 		this.renderer.dirty();

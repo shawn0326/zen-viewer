@@ -6,7 +6,7 @@ export const GroundShader = {
 		gridSize: 5,
 		gridSize2: 1,
 		gridColor: [0, 0, 0, 1],
-		gridColor2: [0.3, 0.3, 0.3, 1],
+		gridColor2: [0.5, 0.5, 0.5, 1],
 		showGrid: false
 	},
 
