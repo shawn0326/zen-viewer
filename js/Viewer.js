@@ -457,6 +457,15 @@ class Viewer {
 		ssaoFolder.add(this.renderer.ssaoEffect.ssaoPass.uniforms, 'intensity', 0, 5, 0.1).onChange(() => this.renderer.dirty());
 		ssaoFolder.add(this.renderer.ssaoEffect.ssaoPass.uniforms, 'radius', 0.1, 30, 0.1).onChange(() => this.renderer.dirty());
 		ssaoFolder.add(this.renderer.ssaoEffect.ssaoPass.uniforms, 'bias', 0, 1, 0.01).onChange(() => this.renderer.dirty());
+		const ssrFolder = this.effectFolder.addFolder('ssr');
+		ssrFolder.add(this.renderer.ssrEffect, 'enable').onChange(() => this.renderer.dirty());
+		ssrFolder.add(this.renderer.ssrEffect.ssrPass.uniforms, 'maxRayDistance', 0, 300, 0.1).onChange(() => this.renderer.dirty());
+		ssrFolder.add(this.renderer.ssrEffect.ssrPass.uniforms, 'pixelStride', 0, 100, 0.1).onChange(() => this.renderer.dirty());
+		ssrFolder.add(this.renderer.ssrEffect.ssrPass.uniforms, 'pixelStrideZCutoff', 0, 300, 0.1).onChange(() => this.renderer.dirty());
+		ssrFolder.add(this.renderer.ssrEffect.ssrPass.uniforms, 'screenEdgeFadeStart', 0, 1, 0.01).onChange(() => this.renderer.dirty());
+		ssrFolder.add(this.renderer.ssrEffect.ssrPass.uniforms, 'eyeFadeStart', 0, 1, 0.01).onChange(() => this.renderer.dirty());
+		ssrFolder.add(this.renderer.ssrEffect.ssrPass.uniforms, 'eyeFadeEnd', 0, 1, 0.01).onChange(() => this.renderer.dirty());
+		ssrFolder.add(this.renderer.ssrEffect.ssrPass.uniforms, 'minGlossiness', 0, 1, 0.01).onChange(() => this.renderer.dirty());
 		const bloomFolder = this.effectFolder.addFolder('bloom');
 		bloomFolder.add(this.renderer.bloomEffect, 'enable').onChange(() => this.renderer.dirty());
 		bloomFolder.add(this.renderer.bloomEffect, 'threshold', 0, 1).onChange(() => this.renderer.dirty());

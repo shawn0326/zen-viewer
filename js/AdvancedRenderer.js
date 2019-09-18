@@ -1,5 +1,6 @@
 import { BloomEffect } from './effects/BloomEffect.js';
 import { SSAOEffect } from './effects/SSAOEffect.js';
+import { SSREffect } from './effects/SSREffect.js';
 import { ToneMappingEffect } from './effects/ToneMappingEffect.js';
 import { VignetteEffect } from './effects/VignetteEffect.js';
 import { BackgroundEffect } from './effects/BackgroundEffect.js';
@@ -47,6 +48,9 @@ class AdvancedRenderer {
 		this.ssaoEffect = new SSAOEffect(canvas.width, canvas.height);
 		this.ssaoEffect.enable = false;
 
+		this.ssrEffect = new SSREffect(canvas.width, canvas.height)
+		this.ssrEffect.enable = false;
+
 		this.bloomEffect = new BloomEffect(canvas.width, canvas.height);
 		this.bloomEffect.enable = false;
 
@@ -58,7 +62,7 @@ class AdvancedRenderer {
 		this.vignetteEffect = new VignetteEffect(canvas.width, canvas.height);
 		this.vignetteEffect.enable = false;
 
-		this._effects = [this.ssaoEffect, this.bloomEffect, this.toneMappingEffect, this.backgroundEffect, this.vignetteEffect];
+		this._effects = [this.ssaoEffect, this.ssrEffect, this.bloomEffect, this.toneMappingEffect, this.backgroundEffect, this.vignetteEffect];
 
 		this.config = { taa: true, fxaa: false };
 	}
@@ -163,7 +167,7 @@ class AdvancedRenderer {
 
 		scene.updateRenderList(camera);
 
-		if (this.ssaoEffect.enable) {
+		if (this.ssaoEffect.enable || this.ssrEffect.enable) {
 			this.gBuffer.update(this.glCore, scene, camera);
 		}
 
