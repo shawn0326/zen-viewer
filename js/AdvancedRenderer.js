@@ -17,8 +17,16 @@ class AdvancedRenderer {
 
 		console.info("WebGL Version: " + this.glCore.capabilities.version);
 
+		const multipleSampling = this.glCore.capabilities.maxSamples;
 		this.sampleRenderTarget = new zen3d.RenderTarget2D(canvas.width, canvas.height);
-		this.sampleRenderTarget.multipleSampling = this.glCore.capabilities.maxSamples;
+		this.sampleRenderTarget.attach(
+			new zen3d.RenderBuffer(canvas.width, canvas.height, zen3d.WEBGL_PIXEL_FORMAT.RGBA8, multipleSampling),
+			zen3d.ATTACHMENT.COLOR_ATTACHMENT0
+		);
+		this.sampleRenderTarget.attach(
+			new zen3d.RenderBuffer(canvas.width, canvas.height, zen3d.WEBGL_PIXEL_FORMAT.DEPTH24_STENCIL8, multipleSampling),
+			zen3d.ATTACHMENT.DEPTH_STENCIL_ATTACHMENT
+		);
 
 		this.tempRenderTarget = new zen3d.RenderTarget2D(canvas.width, canvas.height);
 		this.tempRenderTarget.texture.minFilter = zen3d.WEBGL_TEXTURE_FILTER.LINEAR;
