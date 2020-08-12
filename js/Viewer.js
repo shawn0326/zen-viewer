@@ -1,3 +1,13 @@
+import * as zen3d from '../libs/zen3d/build/zen3d.module.js';
+import { GLTFLoader } from '../libs/zen3d/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from '../libs/zen3d/examples/jsm/loaders/DRACOLoader.js';
+import { OrbitControls } from '../libs/zen3d/examples/jsm/controls/OrbitControls.js';
+import { Clock } from '../libs/zen3d/examples/jsm/Clock.js';
+import { SkeletonHelper } from '../libs/zen3d/examples/jsm/objects/SkeletonHelper.js';
+import { PMREM } from '../libs/zen3d/examples/jsm/PMREM.js';
+
+import { GUI } from '../libs/dat.gui.module.js';
+
 import environments from '../assets/environment/index.js';
 import AdvancedRenderer from './AdvancedRenderer.js';
 import { ToneMappingTypes } from './effects/ToneMappingEffect.js';
@@ -13,7 +23,7 @@ const MAP_NAMES = [
 	'specularMap'
 ];
 
-zen3d.DRACOLoader.setDecoderPath('libs/draco/');
+DRACOLoader.setDecoderPath('libs/draco/');
 
 const DEFAULT_CAMERA = '[default]';
 
@@ -55,17 +65,17 @@ class Viewer {
 
 		this.defaultCamera = new zen3d.Camera();
 		this.defaultCamera.gammaFactor = 2.2;
-		this.defaultCamera.gammaOutput = true;
+		this.defaultCamera.outputEncoding = zen3d.TEXEL_ENCODING_TYPE.GAMMA;
 		this.defaultCamera._clip = [1, 1000];
 		this.defaultCamera.setPerspective(60 / 180 * Math.PI, el.clientWidth / el.clientHeight, 1, 1000);
 		this.scene.add(this.defaultCamera);
 
 		this.activeCamera = this.defaultCamera;
 
-		this.controls = new zen3d.OrbitControls(this.defaultCamera, canvas);
+		this.controls = new OrbitControls(this.defaultCamera, canvas);
 		this.controls.screenSpacePanning = true;
 
-		this.clock = new zen3d.Clock();
+		this.clock = new Clock();
 
 		this.size = new zen3d.Vector3();
 		this.mixer = null;
@@ -132,8 +142,8 @@ class Viewer {
 				return (path || '') + url;
 			});
 
-			const loader = new zen3d.GLTFLoader(manager);
-			loader.setDRACOLoader(new zen3d.DRACOLoader());
+			const loader = new GLTFLoader(manager);
+			loader.setDRACOLoader(new DRACOLoader());
 			const blobURLs = [];
 
 			loader.load(url, (gltf) => {
@@ -195,7 +205,7 @@ class Viewer {
 
 		this.getCubeMapTexture(environment).then(texture => {
 			if (texture) {
-				texture = zen3d.PMREM.prefilterEnvironmentMap(this.renderer.glCore, texture, {
+				texture = PMREM.prefilterEnvironmentMap(this.renderer.glCore, texture, {
 					width: texture.images[0].width,
 					height: texture.images[0].height,
 					sampleSize: 256
@@ -280,7 +290,7 @@ class Viewer {
 	setCamera(name) {
 		if (name === DEFAULT_CAMERA) {
 			this.controls.enabled = true;
-			this.defaultCamera.gammaOutput = this.activeCamera.gammaOutput;
+			this.defaultCamera.outputEncoding = this.activeCamera.outputEncoding;
 			this.activeCamera = this.defaultCamera;
 		} else {
 			this.controls.enabled = false;
@@ -288,7 +298,7 @@ class Viewer {
 				if (node.type === zen3d.OBJECT_TYPE.CAMERA && node.name === name) {
 					this.activeCamera = node;
 					node.gammaFactor = 2.2;
-					node.gammaOutput = this.defaultCamera.gammaOutput;
+					node.outputEncoding = this.defaultCamera.outputEncoding;
 				}
 			});
 		}
@@ -359,7 +369,7 @@ class Viewer {
 
 		this.content.traverse(node => {
 			if (node.geometry && node.skeleton && this.state.skeleton) {
-				const helper = new zen3d.SkeletonHelper(this.scene);
+				const helper = new SkeletonHelper(this.scene);
 				this.scene.add(helper);
 				this.skeletonHelpers.push(helper);
 			}
@@ -407,7 +417,7 @@ class Viewer {
 	}
 
 	addGUI() {
-		const gui = this.gui = new dat.GUI({ autoPlace: false, width: 260, hideable: true });
+		const gui = this.gui = new GUI({ autoPlace: false, width: 260, hideable: true });
 
 		// Display controls.
 		const dispFolder = gui.addFolder('Display');
@@ -427,7 +437,6 @@ class Viewer {
 		const lightFolder = gui.addFolder('Lighting');
 		const encodingCtrl = lightFolder.add(this.state, 'textureEncoding', ['sRGB', 'Linear']);
 		encodingCtrl.onChange(() => this.updateTextureEncoding());
-		lightFolder.add(this.activeCamera, 'gammaOutput').onChange(() => this.renderer.dirty());
 		const envMapCtrl = lightFolder.add(this.state, 'environment', environments.map(env => env.name));
 		envMapCtrl.onChange(() => this.updateEnvironment());
 		[

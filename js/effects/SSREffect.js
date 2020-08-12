@@ -1,3 +1,7 @@
+import * as zen3d from '../../libs/zen3d/build/zen3d.module.js';
+import { SSRShader } from '../../libs/zen3d/examples/jsm/shaders/SSRShader.js';
+import { BlurPass } from '../../libs/zen3d/examples/jsm/pass/BlurPass.js';
+
 import { AbstractEffect } from '../AbstractEffect.js';
 import { AdditiveBlendShader } from '../shaders/AdditiveBlendShader.js';
 
@@ -10,7 +14,7 @@ class SSREffect extends AbstractEffect {
 	constructor(width, height) {
 		super(width, height);
 
-		this.ssrPass = new zen3d.ShaderPostPass(zen3d.SSRShader);
+		this.ssrPass = new zen3d.ShaderPostPass(SSRShader);
 		this.ssrPass.uniforms.maxRayDistance = 200;
 		this.ssrPass.uniforms.pixelStrideZCutoff = 50;
 		this.ssrPass.uniforms.zThicknessThreshold = 1;
@@ -23,7 +27,7 @@ class SSREffect extends AbstractEffect {
 		this.blendPass.material.depthTest = false;
 		this.blendPass.material.depthWrite = false;
 
-		this.blurPass = new zen3d.BlurPass(zen3d.BlurShader);
+		this.blurPass = new BlurPass();
 		this.blurPass.material.depthTest = false;
 		this.blurPass.material.depthWrite = false;
 		this.blurPass.material.defines["NORMALTEX_ENABLED"] = 1;

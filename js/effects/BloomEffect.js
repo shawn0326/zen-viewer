@@ -1,3 +1,7 @@
+import * as zen3d from '../../libs/zen3d/build/zen3d.module.js';
+import { BlurPass } from '../../libs/zen3d/examples/jsm/pass/BlurPass.js';
+import { LuminosityHighPassShader } from '../../libs/zen3d/examples/jsm/shaders/LuminosityHighPassShader.js';
+
 import { AbstractEffect } from '../AbstractEffect.js';
 import { AdditiveBlendShader } from '../shaders/AdditiveBlendShader.js';
 
@@ -6,11 +10,11 @@ class BloomEffect extends AbstractEffect {
 	constructor(width, height) {
 		super(width, height);
 
-		this.highLightPass = new zen3d.ShaderPostPass(zen3d.LuminosityHighPassShader);
+		this.highLightPass = new zen3d.ShaderPostPass(LuminosityHighPassShader);
 		this.highLightPass.material.depthTest = false;
 		this.highLightPass.material.depthWrite = false;
 
-		this.blurPass = new zen3d.BlurPass(zen3d.BlurShader);
+		this.blurPass = new BlurPass();
 		this.blurPass.uniforms["textureSize"] = [width, height];
 		this.blurPass.material.depthTest = false;
 		this.blurPass.material.depthWrite = false;

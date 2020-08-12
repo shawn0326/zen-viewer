@@ -1,3 +1,5 @@
+import * as zen3d from '../../libs/zen3d/build/zen3d.module.js';
+
 import { AbstractEffect } from "../AbstractEffect.js";
 import { ToneMappingShader } from "../shaders/ToneMappingShader.js";
 

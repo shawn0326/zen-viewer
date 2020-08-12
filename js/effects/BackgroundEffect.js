@@ -1,3 +1,7 @@
+import * as zen3d from '../../libs/zen3d/build/zen3d.module.js';
+import { CopyShader } from '../../libs/zen3d/examples/jsm/shaders/CopyShader.js';
+import { SkyBox } from '../../libs/zen3d/examples/jsm/objects/SkyBox.js';
+
 import { AbstractEffect } from "../AbstractEffect.js";
 
 export class BackgroundEffect extends AbstractEffect {
@@ -9,16 +13,16 @@ export class BackgroundEffect extends AbstractEffect {
 
 		this.backgroundScene = new zen3d.Scene();
 		this.backgroundCamera = new zen3d.Camera();
-		this.backgroundCamera.gammaOutput = true;
+		this.backgroundCamera.outputEncoding = zen3d.TEXEL_ENCODING_TYPE.GAMMA;
 		this.backgroundScene.add(this.backgroundCamera);
 
-		this.skyBox = new zen3d.SkyBox(null);
+		this.skyBox = new SkyBox(null);
 		this.skyBox.level = 8;
 		this.skyBox.visible = false;
 		this.skyBox.gamma = true;
 		this.backgroundCamera.add(this.skyBox);
 
-		this.copyPass = new zen3d.ShaderPostPass(zen3d.CopyShader);
+		this.copyPass = new zen3d.ShaderPostPass(CopyShader);
 		this.copyPass.material.transparent = true;
 	}
 

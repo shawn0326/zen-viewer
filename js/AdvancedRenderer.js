@@ -1,3 +1,9 @@
+import * as zen3d from '../libs/zen3d/build/zen3d.module.js';
+import { GBuffer } from '../libs/zen3d/examples/jsm/GBuffer.js';
+import { SuperSampling } from '../libs/zen3d/examples/jsm/SuperSampling.js';
+import { CopyShader } from '../libs/zen3d/examples/jsm/shaders/CopyShader.js';
+import { FXAAShader } from '../libs/zen3d/examples/jsm/shaders/FXAAShader.js';
+
 import { BloomEffect } from './effects/BloomEffect.js';
 import { SSAOEffect } from './effects/SSAOEffect.js';
 import { SSREffect } from './effects/SSREffect.js';
@@ -40,18 +46,18 @@ class AdvancedRenderer {
 
 		this.backRenderTarget = new zen3d.RenderTargetBack(canvas);
 
-		this.gBuffer = new zen3d.GBuffer(canvas.width, canvas.height);
+		this.gBuffer = new GBuffer(canvas.width, canvas.height);
 		this.gBuffer.enableAlbedoMetalness = false;
 
 		// this.shadowMapPass = new zen3d.ShadowMapPass();
 
-		this.copyPass = new zen3d.ShaderPostPass(zen3d.CopyShader);
+		this.copyPass = new zen3d.ShaderPostPass(CopyShader);
 		this.copyPass.material.transparent = true;
-		this.fxaaPass = new zen3d.ShaderPostPass(zen3d.FXAAShader);
+		this.fxaaPass = new zen3d.ShaderPostPass(FXAAShader);
 		this.fxaaPass.material.transparent = true;
 		this.fxaaPass.uniforms["resolution"] = [1 / canvas.width, 1 / canvas.height];
 
-		this.superSampling = new zen3d.SuperSampling(canvas.width, canvas.height, 30);
+		this.superSampling = new SuperSampling(canvas.width, canvas.height, 30);
 
 		this.ssaoEffect = new SSAOEffect(canvas.width, canvas.height);
 		this.ssaoEffect.enable = false;

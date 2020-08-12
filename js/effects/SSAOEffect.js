@@ -1,3 +1,7 @@
+import * as zen3d from '../../libs/zen3d/build/zen3d.module.js';
+import { SSAOPass } from '../../libs/zen3d/examples/jsm/pass/SSAOPass.js';
+import { BlurPass } from '../../libs/zen3d/examples/jsm/pass/BlurPass.js';
+
 import { AbstractEffect } from '../AbstractEffect.js';
 import { MultiplyBlendShader } from '../shaders/MultiplyBlendShader.js';
 
@@ -12,7 +16,7 @@ class SSAOEffect extends AbstractEffect {
 
 		this._ssaoKernalSize = 32;
 
-		this.ssaoPass = new zen3d.SSAOPass();
+		this.ssaoPass = new SSAOPass();
 		this.ssaoPass.material.depthTest = false;
 		this.ssaoPass.material.depthWrite = false;
 		this.ssaoPass.setNoiseSize(256);
@@ -30,7 +34,7 @@ class SSAOEffect extends AbstractEffect {
 		this.blendPass.material.depthTest = false;
 		this.blendPass.material.depthWrite = false;
 
-		this.blurPass = new zen3d.BlurPass(zen3d.BlurShader);
+		this.blurPass = new BlurPass();
 		this.blurPass.material.depthTest = false;
 		this.blurPass.material.depthWrite = false;
 		this.blurPass.material.defines["NORMALTEX_ENABLED"] = 1;

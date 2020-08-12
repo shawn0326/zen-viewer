@@ -1,3 +1,5 @@
+import * as zen3d from '../../libs/zen3d/build/zen3d.module.js';
+
 import { AbstractEffect } from "../AbstractEffect.js";
 import { VignetteShader } from "../shaders/VignetteShader.js";
 
