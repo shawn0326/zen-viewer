@@ -205,11 +205,15 @@ class Viewer {
 
 		this.getCubeMapTexture(environment).then(texture => {
 			if (texture) {
-				texture = PMREM.prefilterEnvironmentMap(this.renderer.glCore, texture, {
-					width: texture.images[0].width,
-					height: texture.images[0].height,
-					sampleSize: 256
-				});
+				if (environment.format === '.hdr') {
+					texture.encoding = zen3d.TEXEL_ENCODING_TYPE.RGBE;
+				} else {
+					texture = PMREM.prefilterEnvironmentMap(this.renderer.glCore, texture, {
+						width: texture.images[0].width,
+						height: texture.images[0].height,
+						sampleSize: 256
+					});
+				}
 			}
 
 			if (texture && this.state.background) {
