@@ -11,6 +11,8 @@ import { ToneMappingEffect } from './effects/ToneMappingEffect.js';
 import { VignetteEffect } from './effects/VignetteEffect.js';
 import { BackgroundEffect } from './effects/BackgroundEffect.js';
 
+import { RenderMode } from './const.js';
+
 const oldProjectionMatrix = new zen3d.Matrix4();
 
 class AdvancedRenderer {
@@ -77,6 +79,11 @@ class AdvancedRenderer {
 		this.vignetteEffect.enable = false;
 
 		this._effects = [this.ssaoEffect, this.ssrEffect, this.bloomEffect, this.toneMappingEffect, this.backgroundEffect, this.vignetteEffect];
+
+		this._matcapTexture = zen3d.Texture2D.fromSrc("assets/matcaps/matcap-collor.jpg");
+		this._matcapMaterials = new Map();
+
+		this.renderMode = RenderMode.DEFAULT;
 
 		this.config = { taa: true, fxaa: false };
 	}
@@ -169,9 +176,11 @@ class AdvancedRenderer {
 			scene.updateMatrix();
 			scene.updateLights();
 
+			scene.updateRenderList(camera);
+
 			this.backgroundEffect.apply(this, camera, undefined, this.backRenderTarget);
 
-			this.glCore.render(scene, camera);
+			this._forwardRender(scene, camera);
 		}
 	}
 
@@ -190,10 +199,55 @@ class AdvancedRenderer {
 		this.glCore.state.colorBuffer.setClear(0, 0, 0, 0);
 		this.glCore.clear(true, true, true);
 
-		this.glCore.render(scene, camera, false);
+		this._forwardRender(scene, camera);
 
 		this.glCore.renderTarget.setRenderTarget(this.tempRenderTarget);
 		this.glCore.renderTarget.blitRenderTarget(this.sampleRenderTarget, this.tempRenderTarget);
+	}
+
+	_forwardRender(scene, camera) {
+		var renderList = scene.getRenderList(camera);
+
+		this.glCore.renderPass(renderList.opaque, camera, {
+			scene: scene,
+			getMaterial: renderable => {
+				switch (this.renderMode) {
+				case RenderMode.DEFAULT:
+					return renderable.material;
+				case RenderMode.MATCAP:
+					return this._getMatcapMaterial(renderable.material);
+				default:
+					return renderable.material; // TODO
+				}
+			}
+		});
+
+		this.glCore.renderPass(renderList.transparent, camera, {
+			scene: scene,
+			getMaterial: renderable => {
+				switch (this.renderMode) {
+				case RenderMode.DEFAULT:
+					return renderable.material;
+				case RenderMode.MATCAP:
+					return this._getMatcapMaterial(renderable.material);
+				default:
+					return renderable.material; // TODO
+				}
+			}
+		});
+	}
+
+	_getMatcapMaterial(material) { // TODO dispose
+		var matcapMaterial;
+		if (!this._matcapMaterials.has(material)) {
+			matcapMaterial = new zen3d.MatcapMaterial();
+			matcapMaterial.matcap = this._matcapTexture;
+			matcapMaterial.normalMap = material.normalMap;
+			this._matcapMaterials.set(material, matcapMaterial);
+		} else {
+			matcapMaterial = this._matcapMaterials.get(material);
+		}
+		return matcapMaterial;
 	}
 
 	dirty() {

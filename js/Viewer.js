@@ -13,6 +13,8 @@ import AdvancedRenderer from './AdvancedRenderer.js';
 import { ToneMappingTypes } from './effects/ToneMappingEffect.js';
 import { GroundShader } from './shaders/GroundShader.js';
 
+import { RenderMode } from './const.js';
+
 const MAP_NAMES = [
 	'diffuseMap',
 	'aoMap',
@@ -450,6 +452,7 @@ class Viewer {
 			lightFolder.add(this.state, 'directIntensity', 0, 4),
 			lightFolder.addColor(this.state, 'directColor')
 		].forEach(ctrl => ctrl.onChange(() => this.updateLights()));
+		lightFolder.add(this.renderer, 'renderMode', [RenderMode.DEFAULT, RenderMode.MATCAP]).onChange(() => this.renderer.dirty());
 
 		// Animation controls.
 		this.animFolder = gui.addFolder('Animation');
